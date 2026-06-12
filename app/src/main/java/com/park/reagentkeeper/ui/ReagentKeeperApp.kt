@@ -9,7 +9,6 @@ import androidx.compose.foundation.layout.ExperimentalLayoutApi
 import androidx.compose.foundation.layout.FlowRow
 import androidx.compose.foundation.layout.PaddingValues
 import androidx.compose.foundation.layout.Row
-import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
@@ -54,9 +53,13 @@ import androidx.compose.ui.graphics.Brush
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.input.KeyboardType
+import androidx.compose.ui.text.input.PasswordVisualTransformation
 import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
+import androidx.compose.ui.window.Dialog
 import androidx.lifecycle.viewmodel.compose.viewModel
+import com.park.reagentkeeper.model.AdminStats
+import com.park.reagentkeeper.model.AppUser
 import com.park.reagentkeeper.model.ExpiryState
 import com.park.reagentkeeper.model.HazardLevel
 import com.park.reagentkeeper.model.InventoryEvent
@@ -64,6 +67,8 @@ import com.park.reagentkeeper.model.InventoryEventType
 import com.park.reagentkeeper.model.LabItem
 import com.park.reagentkeeper.model.LabItemDraft
 import com.park.reagentkeeper.model.LabItemType
+import com.park.reagentkeeper.model.LabSummary
+import com.park.reagentkeeper.model.UserRole
 import com.park.reagentkeeper.model.displayQuantity
 import com.park.reagentkeeper.model.expiryState
 import com.park.reagentkeeper.model.isIsoDateOrBlank
@@ -71,6 +76,11 @@ import com.park.reagentkeeper.model.isLowStock
 import java.time.Instant
 import java.time.ZoneId
 import java.time.format.DateTimeFormatter
+
+private enum class AppSection(val label: String) {
+    INVENTORY("재고 관리"),
+    ADMIN("관리자"),
+}
 
 private enum class InventoryFilter(val label: String) {
     ALL("전체"),
@@ -87,15 +97,40 @@ private data class RecentEventEntry(
 
 @Composable
 fun ReagentKeeperApp(viewModel: InventoryViewModel = viewModel()) {
+    val currentUser = viewModel.currentUser
+
+    if (currentUser == null) {
+        LoginScreen(
+            errorMessage = viewModel.loginError,
+            onClearError = viewModel::clearLoginError,
+            onLogin = viewModel::login,
+        )
+        return
+    }
+
+    AuthenticatedApp(
+        viewModel = viewModel,
+        currentUser = currentUser,
+    )
+}
+
+@Composable
+private fun AuthenticatedApp(
+    viewModel: InventoryViewModel,
+    currentUser: AppUser,
+) {
     val items = viewModel.items
     var query by rememberSaveable { mutableStateOf("") }
     var selectedFilter by rememberSaveable { mutableStateOf(InventoryFilter.ALL.name) }
+    var selectedSection by rememberSaveable { mutableStateOf(AppSection.INVENTORY.name) }
     var showEditor by remember { mutableStateOf(false) }
     var editorTarget by remember { mutableStateOf<LabItem?>(null) }
     var actionTarget by remember { mutableStateOf<LabItem?>(null) }
     var actionType by remember { mutableStateOf<InventoryEventType?>(null) }
 
     val filter = InventoryFilter.valueOf(selectedFilter)
+    val section = AppSection.valueOf(selectedSection)
+    val showAdmin = currentUser.role == UserRole.ADMIN && section == AppSection.ADMIN
     val filteredItems = remember(items, query, filter) { applyFilters(items, query, filter) }
     val recentEvents = remember(items) {
         items
@@ -113,16 +148,18 @@ fun ReagentKeeperApp(viewModel: InventoryViewModel = viewModel()) {
     Scaffold(
         containerColor = Color.Transparent,
         floatingActionButton = {
-            ExtendedFloatingActionButton(
-                onClick = {
-                    editorTarget = null
-                    showEditor = true
-                },
-                modifier = Modifier.navigationBarsPadding(),
-                containerColor = MaterialTheme.colorScheme.primaryContainer,
-                contentColor = MaterialTheme.colorScheme.onPrimaryContainer,
-            ) {
-                Text("새 항목 추가")
+            if (!showAdmin) {
+                ExtendedFloatingActionButton(
+                    onClick = {
+                        editorTarget = null
+                        showEditor = true
+                    },
+                    modifier = Modifier.navigationBarsPadding(),
+                    containerColor = MaterialTheme.colorScheme.primaryContainer,
+                    contentColor = MaterialTheme.colorScheme.onPrimaryContainer,
+                ) {
+                    Text("새 항목 추가")
+                }
             }
         },
     ) { innerPadding ->
@@ -133,8 +170,8 @@ fun ReagentKeeperApp(viewModel: InventoryViewModel = viewModel()) {
                     Brush.verticalGradient(
                         colors = listOf(
                             MaterialTheme.colorScheme.background,
-                            MaterialTheme.colorScheme.primary.copy(alpha = 0.08f),
-                            MaterialTheme.colorScheme.secondary.copy(alpha = 0.10f),
+                            MaterialTheme.colorScheme.primary.copy(alpha = 0.06f),
+                            MaterialTheme.colorScheme.secondary.copy(alpha = 0.08f),
                         ),
                     ),
                 ),
@@ -147,64 +184,94 @@ fun ReagentKeeperApp(viewModel: InventoryViewModel = viewModel()) {
                     end = 20.dp,
                     bottom = innerPadding.calculateBottomPadding() + 108.dp,
                 ),
-                verticalArrangement = Arrangement.spacedBy(16.dp),
+                verticalArrangement = Arrangement.spacedBy(14.dp),
             ) {
                 item {
-                    HeroPanel(
-                        totalCount = items.size,
-                        lowStockCount = lowStockCount,
-                        expiringCount = expiringCount,
+                    AppHeader(
+                        user = currentUser,
+                        onLogout = {
+                            selectedSection = AppSection.INVENTORY.name
+                            viewModel.logout()
+                        },
                     )
                 }
 
-                item {
-                    SummaryStrip(
-                        totalCount = items.size,
-                        lowStockCount = lowStockCount,
-                        expiringCount = expiringCount,
-                        highHazardCount = highHazardCount,
-                    )
-                }
-
-                item {
-                    MigrationGuideCard()
-                }
-
-                item {
-                    SearchAndFilterSection(
-                        query = query,
-                        onQueryChange = { query = it },
-                        selectedFilter = filter,
-                        onFilterChange = { selectedFilter = it.name },
-                    )
-                }
-
-                if (filteredItems.isEmpty()) {
+                if (currentUser.role == UserRole.ADMIN) {
                     item {
-                        EmptyInventoryState(query = query, filter = filter)
-                    }
-                } else {
-                    items(filteredItems, key = { it.id }) { item ->
-                        InventoryCard(
-                            item = item,
-                            onEdit = {
-                                editorTarget = item
-                                showEditor = true
-                            },
-                            onStockIn = {
-                                actionTarget = item
-                                actionType = InventoryEventType.STOCK_IN
-                            },
-                            onStockOut = {
-                                actionTarget = item
-                                actionType = InventoryEventType.STOCK_OUT
-                            },
+                        SectionSwitch(
+                            selectedSection = section,
+                            onSelected = { selectedSection = it.name },
                         )
                     }
                 }
 
-                item {
-                    RecentActivitySection(entries = recentEvents)
+                if (showAdmin) {
+                    item {
+                        AdminDashboardScreen(
+                            stats = viewModel.adminStats(),
+                            users = viewModel.users,
+                        )
+                    }
+                } else {
+                    item {
+                        TodayPanel(
+                            user = currentUser,
+                            totalCount = items.size,
+                            lowStockCount = lowStockCount,
+                            expiringCount = expiringCount,
+                        )
+                    }
+                    item {
+                        SummaryStrip(
+                            totalCount = items.size,
+                            lowStockCount = lowStockCount,
+                            expiringCount = expiringCount,
+                            highHazardCount = highHazardCount,
+                        )
+                    }
+                    item {
+                        QuickActionPanel(
+                            lowStockCount = lowStockCount,
+                            expiringCount = expiringCount,
+                            highHazardCount = highHazardCount,
+                        )
+                    }
+                    item {
+                        SearchAndFilterSection(
+                            query = query,
+                            onQueryChange = { query = it },
+                            selectedFilter = filter,
+                            onFilterChange = { selectedFilter = it.name },
+                        )
+                    }
+
+                    if (filteredItems.isEmpty()) {
+                        item {
+                            EmptyInventoryState(query = query, filter = filter)
+                        }
+                    } else {
+                        items(filteredItems, key = { it.id }) { item ->
+                            InventoryCard(
+                                item = item,
+                                onEdit = {
+                                    editorTarget = item
+                                    showEditor = true
+                                },
+                                onStockIn = {
+                                    actionTarget = item
+                                    actionType = InventoryEventType.STOCK_IN
+                                },
+                                onStockOut = {
+                                    actionTarget = item
+                                    actionType = InventoryEventType.STOCK_OUT
+                                },
+                            )
+                        }
+                    }
+
+                    item {
+                        RecentActivitySection(entries = recentEvents)
+                    }
                 }
             }
         }
@@ -239,41 +306,209 @@ fun ReagentKeeperApp(viewModel: InventoryViewModel = viewModel()) {
     )
 }
 
-private fun applyFilters(items: List<LabItem>, query: String, filter: InventoryFilter): List<LabItem> {
-    val normalizedQuery = query.trim().lowercase()
-    return items.filter { item ->
-        val queryMatches = normalizedQuery.isBlank() || listOf(
-            item.name,
-            item.category,
-            item.spec,
-            item.storageLocation,
-            item.manager,
-            item.note,
-        ).any { value -> value.lowercase().contains(normalizedQuery) }
+@Composable
+private fun LoginScreen(
+    errorMessage: String?,
+    onClearError: () -> Unit,
+    onLogin: (String, String) -> Boolean,
+) {
+    var email by rememberSaveable { mutableStateOf("admin@ontect.school") }
+    var password by rememberSaveable { mutableStateOf("admin1234") }
 
-        val filterMatches = when (filter) {
-            InventoryFilter.ALL -> true
-            InventoryFilter.ALERT -> item.isLowStock() ||
-                item.hazardLevel == HazardLevel.HIGH ||
-                item.expiryState() == ExpiryState.SOON ||
-                item.expiryState() == ExpiryState.EXPIRED
-            InventoryFilter.REAGENT -> item.type == LabItemType.REAGENT
-            InventoryFilter.SUPPLY -> item.type == LabItemType.SUPPLY
-            InventoryFilter.EQUIPMENT -> item.type == LabItemType.EQUIPMENT
+    Box(
+        modifier = Modifier
+            .fillMaxSize()
+            .background(
+                Brush.verticalGradient(
+                    colors = listOf(
+                        MaterialTheme.colorScheme.background,
+                        MaterialTheme.colorScheme.primary.copy(alpha = 0.10f),
+                    ),
+                ),
+            )
+            .padding(24.dp),
+        contentAlignment = Alignment.Center,
+    ) {
+        Column(
+            modifier = Modifier.fillMaxWidth(),
+            verticalArrangement = Arrangement.spacedBy(16.dp),
+        ) {
+            Column(verticalArrangement = Arrangement.spacedBy(8.dp)) {
+                Text(
+                    text = "OnTect",
+                    style = MaterialTheme.typography.displaySmall,
+                    fontWeight = FontWeight.Bold,
+                    color = MaterialTheme.colorScheme.primary,
+                )
+                StatusPill(
+                    text = "무료 로컬 빌드",
+                    color = MaterialTheme.colorScheme.secondaryContainer,
+                    contentColor = MaterialTheme.colorScheme.onSecondaryContainer,
+                )
+                Text(
+                    text = "학교 과학실 재고 관리",
+                    style = MaterialTheme.typography.titleLarge,
+                    fontWeight = FontWeight.SemiBold,
+                )
+                Text(
+                    text = "계정으로 로그인하면 담당 실험실 재고와 입출고 기록을 이어서 관리할 수 있습니다.",
+                    style = MaterialTheme.typography.bodyLarge,
+                    color = MaterialTheme.colorScheme.onSurfaceVariant,
+                )
+            }
+
+            ElevatedCard(
+                shape = RoundedCornerShape(12.dp),
+                colors = CardDefaults.elevatedCardColors(containerColor = MaterialTheme.colorScheme.surface),
+            ) {
+                Column(
+                    modifier = Modifier.padding(18.dp),
+                    verticalArrangement = Arrangement.spacedBy(14.dp),
+                ) {
+                    OutlinedTextField(
+                        value = email,
+                        onValueChange = {
+                            email = it
+                            onClearError()
+                        },
+                        modifier = Modifier.fillMaxWidth(),
+                        label = { Text("이메일") },
+                        singleLine = true,
+                        shape = RoundedCornerShape(10.dp),
+                    )
+                    OutlinedTextField(
+                        value = password,
+                        onValueChange = {
+                            password = it
+                            onClearError()
+                        },
+                        modifier = Modifier.fillMaxWidth(),
+                        label = { Text("비밀번호") },
+                        singleLine = true,
+                        visualTransformation = PasswordVisualTransformation(),
+                        shape = RoundedCornerShape(10.dp),
+                    )
+
+                    if (errorMessage != null) {
+                        Text(
+                            text = errorMessage,
+                            color = MaterialTheme.colorScheme.error,
+                            style = MaterialTheme.typography.bodyMedium,
+                        )
+                    }
+
+                    Button(
+                        onClick = { onLogin(email, password) },
+                        modifier = Modifier.fillMaxWidth(),
+                        shape = RoundedCornerShape(10.dp),
+                    ) {
+                        Text("로그인")
+                    }
+
+                    HorizontalDivider()
+
+                    Text(
+                        text = "빠른 체험 계정",
+                        style = MaterialTheme.typography.labelLarge,
+                        color = MaterialTheme.colorScheme.onSurfaceVariant,
+                    )
+                    Row(
+                        modifier = Modifier.horizontalScroll(rememberScrollState()),
+                        horizontalArrangement = Arrangement.spacedBy(8.dp),
+                    ) {
+                        DemoAccountChip("관리자", "admin@ontect.school", "admin1234", onPick = { pickedEmail, pickedPassword ->
+                            email = pickedEmail
+                            password = pickedPassword
+                            onClearError()
+                        })
+                        DemoAccountChip("화학실", "chem@ontect.school", "chem1234", onPick = { pickedEmail, pickedPassword ->
+                            email = pickedEmail
+                            password = pickedPassword
+                            onClearError()
+                        })
+                        DemoAccountChip("생명실", "bio@ontect.school", "bio1234", onPick = { pickedEmail, pickedPassword ->
+                            email = pickedEmail
+                            password = pickedPassword
+                            onClearError()
+                        })
+                    }
+                }
+            }
         }
+    }
+}
 
-        queryMatches && filterMatches
-    }.sortedWith(
-        compareByDescending<LabItem> { it.isLowStock() }
-            .thenByDescending { it.expiryState() == ExpiryState.EXPIRED }
-            .thenBy { it.name.lowercase() },
+@Composable
+private fun DemoAccountChip(
+    label: String,
+    email: String,
+    password: String,
+    onPick: (String, String) -> Unit,
+) {
+    AssistChip(
+        onClick = { onPick(email, password) },
+        label = { Text(label) },
     )
 }
 
 @Composable
-private fun HeroPanel(totalCount: Int, lowStockCount: Int, expiringCount: Int) {
+private fun AppHeader(user: AppUser, onLogout: () -> Unit) {
+    Row(
+        modifier = Modifier.fillMaxWidth(),
+        horizontalArrangement = Arrangement.spacedBy(12.dp),
+        verticalAlignment = Alignment.CenterVertically,
+    ) {
+        Column(modifier = Modifier.weight(1f), verticalArrangement = Arrangement.spacedBy(4.dp)) {
+            Text(
+                text = "OnTect",
+                style = MaterialTheme.typography.headlineMedium,
+                fontWeight = FontWeight.Bold,
+                color = MaterialTheme.colorScheme.primary,
+            )
+            Text(
+                text = "${user.name} · ${user.role.label} · ${user.labName}",
+                style = MaterialTheme.typography.bodyMedium,
+                color = MaterialTheme.colorScheme.onSurfaceVariant,
+                maxLines = 1,
+                overflow = TextOverflow.Ellipsis,
+            )
+            Text(
+                text = "무료 로컬 모드",
+                style = MaterialTheme.typography.bodySmall,
+                color = MaterialTheme.colorScheme.onSurfaceVariant,
+            )
+        }
+        TextButton(onClick = onLogout) {
+            Text("로그아웃")
+        }
+    }
+}
+
+@Composable
+private fun SectionSwitch(selectedSection: AppSection, onSelected: (AppSection) -> Unit) {
+    Row(
+        modifier = Modifier.horizontalScroll(rememberScrollState()),
+        horizontalArrangement = Arrangement.spacedBy(8.dp),
+    ) {
+        AppSection.entries.forEach { section ->
+            FilterChip(
+                selected = selectedSection == section,
+                onClick = { onSelected(section) },
+                label = { Text(section.label) },
+            )
+        }
+    }
+}
+
+@Composable
+private fun TodayPanel(
+    user: AppUser,
+    totalCount: Int,
+    lowStockCount: Int,
+    expiringCount: Int,
+) {
     Surface(
-        shape = RoundedCornerShape(28.dp),
+        shape = RoundedCornerShape(12.dp),
         tonalElevation = 4.dp,
         shadowElevation = 4.dp,
     ) {
@@ -288,17 +523,17 @@ private fun HeroPanel(totalCount: Int, lowStockCount: Int, expiringCount: Int) {
                         ),
                     ),
                 )
-                .padding(24.dp),
+                .padding(20.dp),
         ) {
             Column(verticalArrangement = Arrangement.spacedBy(10.dp)) {
                 Text(
-                    text = "학교 시약과 실험실 물품을 한 번에 관리",
+                    text = "${user.labName} 오늘의 점검",
                     style = MaterialTheme.typography.headlineSmall,
                     fontWeight = FontWeight.Bold,
                     color = MaterialTheme.colorScheme.onPrimary,
                 )
                 Text(
-                    text = "기존 시트의 분류, 교구명, 용량, 수량 흐름을 그대로 가져오면서 재고 경고와 입출고 기록까지 붙였습니다.",
+                    text = "부족 재고와 만료 임박 항목을 먼저 확인하고, 수업 사용량은 바로 기록하세요.",
                     style = MaterialTheme.typography.bodyLarge,
                     color = MaterialTheme.colorScheme.onPrimary.copy(alpha = 0.92f),
                 )
@@ -329,7 +564,7 @@ private fun HeroPill(text: String) {
 
 @Composable
 private fun SummaryStrip(totalCount: Int, lowStockCount: Int, expiringCount: Int, highHazardCount: Int) {
-    LazyRow(horizontalArrangement = Arrangement.spacedBy(12.dp)) {
+    LazyRow(horizontalArrangement = Arrangement.spacedBy(10.dp)) {
         item {
             SummaryCard(title = "총 재고", value = totalCount.toString(), caption = "실험실 전체")
         }
@@ -348,12 +583,12 @@ private fun SummaryStrip(totalCount: Int, lowStockCount: Int, expiringCount: Int
 @Composable
 private fun SummaryCard(title: String, value: String, caption: String) {
     ElevatedCard(
-        modifier = Modifier.width(170.dp),
-        shape = RoundedCornerShape(24.dp),
+        modifier = Modifier.width(164.dp),
+        shape = RoundedCornerShape(12.dp),
         colors = CardDefaults.elevatedCardColors(containerColor = MaterialTheme.colorScheme.surface),
     ) {
         Column(
-            modifier = Modifier.padding(18.dp),
+            modifier = Modifier.padding(16.dp),
             verticalArrangement = Arrangement.spacedBy(6.dp),
         ) {
             Text(text = title, style = MaterialTheme.typography.labelLarge, color = MaterialTheme.colorScheme.onSurfaceVariant)
@@ -365,31 +600,25 @@ private fun SummaryCard(title: String, value: String, caption: String) {
 
 @OptIn(ExperimentalLayoutApi::class)
 @Composable
-private fun MigrationGuideCard() {
-    Card(shape = RoundedCornerShape(24.dp)) {
+private fun QuickActionPanel(lowStockCount: Int, expiringCount: Int, highHazardCount: Int) {
+    Card(shape = RoundedCornerShape(12.dp)) {
         Column(
-            modifier = Modifier.padding(20.dp),
+            modifier = Modifier.padding(16.dp),
             verticalArrangement = Arrangement.spacedBy(12.dp),
         ) {
-            Text(text = "기존 시트와 바로 연결되는 구조", style = MaterialTheme.typography.titleMedium, fontWeight = FontWeight.SemiBold)
-            Text(
-                text = "지금 쓰는 구글 시트 열 구조를 그대로 앱 필드로 매핑해 두었습니다. 다음 단계에서는 CSV 또는 Google Sheets 가져오기를 붙이면 됩니다.",
-                style = MaterialTheme.typography.bodyMedium,
-                color = MaterialTheme.colorScheme.onSurfaceVariant,
-            )
+            Text(text = "우선 확인", style = MaterialTheme.typography.titleMedium, fontWeight = FontWeight.SemiBold)
             FlowRow(horizontalArrangement = Arrangement.spacedBy(8.dp), verticalArrangement = Arrangement.spacedBy(8.dp)) {
-                MappingChip("분류 → 카테고리")
-                MappingChip("교구명 → 항목명")
-                MappingChip("용량/모델명 → 규격")
-                MappingChip("수량 → 현재 재고")
-                MappingChip("추가 필드 → 위치/위험도/유통기한")
+                ActionChip("재주문 $lowStockCount")
+                ActionChip("만료 임박 $expiringCount")
+                ActionChip("고위험 $highHazardCount")
+                ActionChip("수업 사용량 기록")
             }
         }
     }
 }
 
 @Composable
-private fun MappingChip(text: String) {
+private fun ActionChip(text: String) {
     Surface(
         shape = CircleShape,
         color = MaterialTheme.colorScheme.secondaryContainer,
@@ -415,7 +644,7 @@ private fun SearchAndFilterSection(
             value = query,
             onValueChange = onQueryChange,
             modifier = Modifier.fillMaxWidth(),
-            shape = RoundedCornerShape(22.dp),
+            shape = RoundedCornerShape(10.dp),
             label = { Text("검색") },
             placeholder = { Text("시약명, 분류, 위치, 담당교사") },
             singleLine = true,
@@ -445,7 +674,7 @@ private fun InventoryCard(
 ) {
     val expiryState = item.expiryState()
     ElevatedCard(
-        shape = RoundedCornerShape(28.dp),
+        shape = RoundedCornerShape(12.dp),
         colors = CardDefaults.elevatedCardColors(
             containerColor = when {
                 item.isLowStock() -> MaterialTheme.colorScheme.errorContainer.copy(alpha = 0.42f)
@@ -455,7 +684,7 @@ private fun InventoryCard(
         ),
     ) {
         Column(
-            modifier = Modifier.padding(18.dp),
+            modifier = Modifier.padding(16.dp),
             verticalArrangement = Arrangement.spacedBy(14.dp),
         ) {
             Row(horizontalArrangement = Arrangement.spacedBy(12.dp), verticalAlignment = Alignment.Top) {
@@ -478,7 +707,7 @@ private fun InventoryCard(
                 }
 
                 Surface(
-                    shape = RoundedCornerShape(20.dp),
+                    shape = RoundedCornerShape(10.dp),
                     color = MaterialTheme.colorScheme.primary.copy(alpha = 0.10f),
                 ) {
                     Column(
@@ -523,10 +752,10 @@ private fun InventoryCard(
             }
 
             Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
-                Button(onClick = onStockIn, modifier = Modifier.weight(1f)) {
+                Button(onClick = onStockIn, modifier = Modifier.weight(1f), shape = RoundedCornerShape(10.dp)) {
                     Text("입고")
                 }
-                OutlinedButton(onClick = onStockOut, modifier = Modifier.weight(1f)) {
+                OutlinedButton(onClick = onStockOut, modifier = Modifier.weight(1f), shape = RoundedCornerShape(10.dp)) {
                     Text("사용")
                 }
                 TextButton(onClick = onEdit) {
@@ -567,9 +796,9 @@ private fun DetailLine(label: String, value: String, maxLines: Int = 1) {
 
 @Composable
 private fun EmptyInventoryState(query: String, filter: InventoryFilter) {
-    Card(shape = RoundedCornerShape(24.dp)) {
+    Card(shape = RoundedCornerShape(12.dp)) {
         Column(
-            modifier = Modifier.padding(24.dp),
+            modifier = Modifier.padding(18.dp),
             verticalArrangement = Arrangement.spacedBy(8.dp),
         ) {
             Text(text = "조건에 맞는 항목이 없습니다", style = MaterialTheme.typography.titleMedium, fontWeight = FontWeight.SemiBold)
@@ -584,9 +813,9 @@ private fun EmptyInventoryState(query: String, filter: InventoryFilter) {
 
 @Composable
 private fun RecentActivitySection(entries: List<RecentEventEntry>) {
-    Card(shape = RoundedCornerShape(24.dp)) {
+    Card(shape = RoundedCornerShape(12.dp)) {
         Column(
-            modifier = Modifier.padding(20.dp),
+            modifier = Modifier.padding(18.dp),
             verticalArrangement = Arrangement.spacedBy(14.dp),
         ) {
             Text(text = "최근 입출고 및 점검 기록", style = MaterialTheme.typography.titleMedium, fontWeight = FontWeight.SemiBold)
@@ -646,6 +875,170 @@ private fun RecentActivitySection(entries: List<RecentEventEntry>) {
 }
 
 @Composable
+private fun AdminDashboardScreen(stats: AdminStats, users: List<AppUser>) {
+    Column(verticalArrangement = Arrangement.spacedBy(14.dp)) {
+        Text(
+            text = "관리자 대시보드",
+            style = MaterialTheme.typography.headlineSmall,
+            fontWeight = FontWeight.Bold,
+        )
+        AdminMetricStrip(stats)
+        UserStatsSection(stats)
+        LabSummarySection(stats.labSummaries)
+        UserRosterSection(users)
+    }
+}
+
+@Composable
+private fun AdminMetricStrip(stats: AdminStats) {
+    LazyRow(horizontalArrangement = Arrangement.spacedBy(10.dp)) {
+        item { SummaryCard("전체 유저", stats.userStats.totalUsers.toString(), "활성 ${stats.userStats.activeUsers}명") }
+        item { SummaryCard("전체 재고", stats.totalItems.toString(), "등록 항목") }
+        item { SummaryCard("주의 재고", (stats.lowStockItems + stats.expiringItems).toString(), "부족/만료") }
+        item { SummaryCard("입출고", stats.totalEvents.toString(), "누적 기록") }
+    }
+}
+
+@Composable
+private fun UserStatsSection(stats: AdminStats) {
+    Card(shape = RoundedCornerShape(12.dp)) {
+        Column(
+            modifier = Modifier.padding(18.dp),
+            verticalArrangement = Arrangement.spacedBy(12.dp),
+        ) {
+            Text(text = "사용자 통계", style = MaterialTheme.typography.titleMedium, fontWeight = FontWeight.SemiBold)
+            AdminStatLine("관리자", stats.userStats.adminUsers, stats.userStats.totalUsers)
+            AdminStatLine("교사", stats.userStats.teacherUsers, stats.userStats.totalUsers)
+            AdminStatLine("실험 보조", stats.userStats.assistantUsers, stats.userStats.totalUsers)
+            HorizontalDivider()
+            AdminStatLine("입고 기록", stats.stockInEvents, stats.totalEvents)
+            AdminStatLine("사용 기록", stats.stockOutEvents, stats.totalEvents)
+            AdminStatLine("점검 기록", stats.auditEvents, stats.totalEvents)
+        }
+    }
+}
+
+@Composable
+private fun AdminStatLine(label: String, value: Int, total: Int) {
+    val percent = if (total == 0) 0 else ((value.toFloat() / total.toFloat()) * 100).toInt()
+    Row(
+        modifier = Modifier.fillMaxWidth(),
+        horizontalArrangement = Arrangement.spacedBy(12.dp),
+        verticalAlignment = Alignment.CenterVertically,
+    ) {
+        Text(text = label, modifier = Modifier.weight(1f), style = MaterialTheme.typography.bodyLarge)
+        Text(text = "$value", style = MaterialTheme.typography.bodyLarge, fontWeight = FontWeight.SemiBold)
+        Text(text = "$percent%", style = MaterialTheme.typography.bodyMedium, color = MaterialTheme.colorScheme.onSurfaceVariant)
+    }
+}
+
+@Composable
+private fun LabSummarySection(summaries: List<LabSummary>) {
+    Card(shape = RoundedCornerShape(12.dp)) {
+        Column(
+            modifier = Modifier.padding(18.dp),
+            verticalArrangement = Arrangement.spacedBy(12.dp),
+        ) {
+            Text(text = "실험실별 현황", style = MaterialTheme.typography.titleMedium, fontWeight = FontWeight.SemiBold)
+            summaries.forEachIndexed { index, summary ->
+                if (index > 0) HorizontalDivider()
+                Row(
+                    modifier = Modifier.fillMaxWidth(),
+                    horizontalArrangement = Arrangement.spacedBy(12.dp),
+                    verticalAlignment = Alignment.CenterVertically,
+                ) {
+                    Column(modifier = Modifier.weight(1f), verticalArrangement = Arrangement.spacedBy(3.dp)) {
+                        Text(text = summary.labName, style = MaterialTheme.typography.bodyLarge, fontWeight = FontWeight.SemiBold)
+                        Text(
+                            text = "담당 ${summary.ownerCount}명 · 항목 ${summary.itemCount}개",
+                            style = MaterialTheme.typography.bodyMedium,
+                            color = MaterialTheme.colorScheme.onSurfaceVariant,
+                        )
+                    }
+                    StatusPill(
+                        text = "주의 ${summary.alertCount}",
+                        color = if (summary.alertCount > 0) MaterialTheme.colorScheme.errorContainer else MaterialTheme.colorScheme.primaryContainer,
+                        contentColor = if (summary.alertCount > 0) MaterialTheme.colorScheme.onErrorContainer else MaterialTheme.colorScheme.onPrimaryContainer,
+                    )
+                }
+            }
+        }
+    }
+}
+
+@Composable
+private fun UserRosterSection(users: List<AppUser>) {
+    Card(shape = RoundedCornerShape(12.dp)) {
+        Column(
+            modifier = Modifier.padding(18.dp),
+            verticalArrangement = Arrangement.spacedBy(12.dp),
+        ) {
+            Text(text = "전체 유저", style = MaterialTheme.typography.titleMedium, fontWeight = FontWeight.SemiBold)
+            users.forEachIndexed { index, user ->
+                if (index > 0) HorizontalDivider()
+                Row(
+                    modifier = Modifier.fillMaxWidth(),
+                    horizontalArrangement = Arrangement.spacedBy(12.dp),
+                    verticalAlignment = Alignment.CenterVertically,
+                ) {
+                    Column(modifier = Modifier.weight(1f), verticalArrangement = Arrangement.spacedBy(3.dp)) {
+                        Text(text = user.name, style = MaterialTheme.typography.bodyLarge, fontWeight = FontWeight.SemiBold)
+                        Text(
+                            text = "${user.email} · ${user.labName}",
+                            style = MaterialTheme.typography.bodyMedium,
+                            color = MaterialTheme.colorScheme.onSurfaceVariant,
+                            maxLines = 1,
+                            overflow = TextOverflow.Ellipsis,
+                        )
+                        Text(
+                            text = "최근 로그인: ${formatTimestampOrNone(user.lastLoginAt)}",
+                            style = MaterialTheme.typography.bodySmall,
+                            color = MaterialTheme.colorScheme.onSurfaceVariant,
+                        )
+                    }
+                    StatusPill(
+                        text = user.role.label,
+                        color = if (user.role == UserRole.ADMIN) MaterialTheme.colorScheme.primaryContainer else MaterialTheme.colorScheme.surfaceVariant,
+                        contentColor = if (user.role == UserRole.ADMIN) MaterialTheme.colorScheme.onPrimaryContainer else MaterialTheme.colorScheme.onSurfaceVariant,
+                    )
+                }
+            }
+        }
+    }
+}
+
+private fun applyFilters(items: List<LabItem>, query: String, filter: InventoryFilter): List<LabItem> {
+    val normalizedQuery = query.trim().lowercase()
+    return items.filter { item ->
+        val queryMatches = normalizedQuery.isBlank() || listOf(
+            item.name,
+            item.category,
+            item.spec,
+            item.storageLocation,
+            item.manager,
+            item.note,
+        ).any { value -> value.lowercase().contains(normalizedQuery) }
+
+        val filterMatches = when (filter) {
+            InventoryFilter.ALL -> true
+            InventoryFilter.ALERT -> item.isLowStock() ||
+                item.hazardLevel == HazardLevel.HIGH ||
+                item.expiryState() == ExpiryState.SOON ||
+                item.expiryState() == ExpiryState.EXPIRED
+            InventoryFilter.REAGENT -> item.type == LabItemType.REAGENT
+            InventoryFilter.SUPPLY -> item.type == LabItemType.SUPPLY
+            InventoryFilter.EQUIPMENT -> item.type == LabItemType.EQUIPMENT
+        }
+
+        queryMatches && filterMatches
+    }.sortedWith(
+        compareByDescending<LabItem> { it.isLowStock() }
+            .thenByDescending { it.expiryState() == ExpiryState.EXPIRED }
+            .thenBy { it.name.lowercase() },
+    )
+}
+
+@Composable
 private fun ItemEditorDialog(
     initialItem: LabItem?,
     visible: Boolean,
@@ -668,19 +1061,19 @@ private fun ItemEditorDialog(
     var selectedHazard by remember(initialItem?.id) { mutableStateOf(initialItem?.hazardLevel ?: HazardLevel.MEDIUM) }
     var errorMessage by remember(initialItem?.id) { mutableStateOf<String?>(null) }
 
-    androidx.compose.ui.window.Dialog(onDismissRequest = onDismiss) {
+    Dialog(onDismissRequest = onDismiss) {
         Surface(
-            shape = RoundedCornerShape(28.dp),
+            shape = RoundedCornerShape(12.dp),
             tonalElevation = 6.dp,
         ) {
             Column(
                 modifier = Modifier
                     .fillMaxWidth()
-                    .padding(20.dp),
+                    .padding(18.dp),
                 verticalArrangement = Arrangement.spacedBy(14.dp),
             ) {
                 Text(
-                    text = if (initialItem == null) "새 시약 또는 기자재 추가" else "항목 정보 수정",
+                    text = if (initialItem == null) "새 항목 추가" else "항목 정보 수정",
                     style = MaterialTheme.typography.titleLarge,
                     fontWeight = FontWeight.Bold,
                 )
@@ -707,32 +1100,12 @@ private fun ItemEditorDialog(
                     EditorField(value = category, onValueChange = { category = it }, label = "분류")
                     EditorField(value = spec, onValueChange = { spec = it }, label = "용량 / 모델명")
                     EditorField(value = unit, onValueChange = { unit = it }, label = "단위", placeholder = "L, kg, 병, 대")
-                    EditorField(
-                        value = currentQuantity,
-                        onValueChange = { currentQuantity = it },
-                        label = "현재 수량",
-                        keyboardType = KeyboardType.Decimal,
-                    )
-                    EditorField(
-                        value = minimumQuantity,
-                        onValueChange = { minimumQuantity = it },
-                        label = "최소 수량",
-                        keyboardType = KeyboardType.Decimal,
-                    )
+                    EditorField(value = currentQuantity, onValueChange = { currentQuantity = it }, label = "현재 수량", keyboardType = KeyboardType.Decimal)
+                    EditorField(value = minimumQuantity, onValueChange = { minimumQuantity = it }, label = "최소 수량", keyboardType = KeyboardType.Decimal)
                     EditorField(value = storageLocation, onValueChange = { storageLocation = it }, label = "보관 위치")
                     EditorField(value = manager, onValueChange = { manager = it }, label = "담당 교사 / 실험실")
-                    EditorField(
-                        value = expiryDate,
-                        onValueChange = { expiryDate = it },
-                        label = "유통기한",
-                        placeholder = "YYYY-MM-DD, 없으면 비워두기",
-                    )
-                    EditorField(
-                        value = note,
-                        onValueChange = { note = it },
-                        label = "메모",
-                        singleLine = false,
-                    )
+                    EditorField(value = expiryDate, onValueChange = { expiryDate = it }, label = "유통기한", placeholder = "YYYY-MM-DD, 없으면 비워두기")
+                    EditorField(value = note, onValueChange = { note = it }, label = "메모", singleLine = false)
                 }
 
                 if (errorMessage != null) {
@@ -740,7 +1113,7 @@ private fun ItemEditorDialog(
                 }
 
                 Row(horizontalArrangement = Arrangement.spacedBy(8.dp), modifier = Modifier.fillMaxWidth()) {
-                    OutlinedButton(onClick = onDismiss, modifier = Modifier.weight(1f)) {
+                    OutlinedButton(onClick = onDismiss, modifier = Modifier.weight(1f), shape = RoundedCornerShape(10.dp)) {
                         Text("취소")
                     }
                     Button(
@@ -778,6 +1151,7 @@ private fun ItemEditorDialog(
                             }
                         },
                         modifier = Modifier.weight(1f),
+                        shape = RoundedCornerShape(10.dp),
                     ) {
                         Text("저장")
                     }
@@ -801,15 +1175,11 @@ private fun EditorField(
         onValueChange = onValueChange,
         modifier = Modifier.fillMaxWidth(),
         label = { Text(label) },
-        placeholder = if (placeholder.isBlank()) {
-            null
-        } else {
-            { Text(placeholder) }
-        },
+        placeholder = if (placeholder.isBlank()) null else ({ Text(placeholder) }),
         keyboardOptions = KeyboardOptions(keyboardType = keyboardType),
         singleLine = singleLine,
         minLines = if (singleLine) 1 else 3,
-        shape = RoundedCornerShape(18.dp),
+        shape = RoundedCornerShape(10.dp),
     )
 }
 
@@ -861,7 +1231,7 @@ private fun InventoryActionDialog(
                     label = { Text("수량") },
                     keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Decimal),
                     singleLine = true,
-                    shape = RoundedCornerShape(18.dp),
+                    shape = RoundedCornerShape(10.dp),
                 )
                 OutlinedTextField(
                     value = memo,
@@ -870,7 +1240,7 @@ private fun InventoryActionDialog(
                     placeholder = { Text("수업명, 구매처, 폐기 사유 등") },
                     singleLine = false,
                     minLines = 2,
-                    shape = RoundedCornerShape(18.dp),
+                    shape = RoundedCornerShape(10.dp),
                 )
                 if (errorMessage != null) {
                     Text(text = errorMessage.orEmpty(), color = MaterialTheme.colorScheme.error)
@@ -909,4 +1279,8 @@ private fun formatTimestamp(epochMillis: Long): String {
     return Instant.ofEpochMilli(epochMillis)
         .atZone(ZoneId.systemDefault())
         .format(formatter)
+}
+
+private fun formatTimestampOrNone(epochMillis: Long): String {
+    return if (epochMillis == 0L) "기록 없음" else formatTimestamp(epochMillis)
 }

@@ -11,11 +11,19 @@ android {
   compileSdk = 35
 
   defaultConfig {
-    applicationId = "com.park.reagentkeeper"
+    applicationId = "com.park.ontect"
     minSdk = 26
     targetSdk = 35
-    versionCode = 1
-    versionName = "0.1.0"
+    versionCode = 2
+    versionName = "0.2.0"
+  }
+
+  flavorDimensions += "edition"
+  productFlavors {
+    create("free") {
+      dimension = "edition"
+      versionNameSuffix = "-free"
+    }
   }
 
   buildTypes {

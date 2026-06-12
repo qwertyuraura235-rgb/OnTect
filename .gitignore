@@ -6,5 +6,6 @@ local.properties
 *.iml
 .idea/
 captures/
+preview/
 *.apk
 *.aab
