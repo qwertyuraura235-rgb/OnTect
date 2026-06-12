@@ -2,6 +2,7 @@ package com.park.reagentkeeper.model
 
 import java.time.LocalDate
 import java.time.format.DateTimeParseException
+import java.util.Locale
 
 enum class LabItemType(val label: String) {
     REAGENT("시약"),
@@ -96,6 +97,6 @@ fun Double.displayQuantity(): String {
     return if (this % 1.0 == 0.0) {
         toInt().toString()
     } else {
-        String.format("%.1f", this)
+        String.format(Locale.US, "%.1f", this)
     }
 }

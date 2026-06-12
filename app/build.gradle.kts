@@ -1,3 +1,5 @@
+import java.io.FileInputStream
+import java.util.Properties
 import org.jetbrains.kotlin.gradle.dsl.JvmTarget
 
 plugins {
@@ -5,6 +7,27 @@ plugins {
   id("org.jetbrains.kotlin.android")
   id("org.jetbrains.kotlin.plugin.compose")
 }
+
+val keystorePropertiesFile = rootProject.file("keystore.properties")
+val keystoreProperties = Properties()
+if (keystorePropertiesFile.exists()) {
+  FileInputStream(keystorePropertiesFile).use { keystoreProperties.load(it) }
+}
+
+fun releaseKeystoreProperty(name: String): String? = keystoreProperties
+  .getProperty(name)
+  ?.takeIf { it.isNotBlank() }
+
+val releaseStoreFile = releaseKeystoreProperty("storeFile")
+val releaseStorePassword = releaseKeystoreProperty("storePassword")
+val releaseKeyAlias = releaseKeystoreProperty("keyAlias")
+val releaseKeyPassword = releaseKeystoreProperty("keyPassword")
+val hasReleaseKeystore = listOf(
+  releaseStoreFile,
+  releaseStorePassword,
+  releaseKeyAlias,
+  releaseKeyPassword,
+).all { it != null } && releaseStoreFile?.let { rootProject.file(it).exists() } == true
 
 android {
   namespace = "com.park.reagentkeeper"
@@ -14,8 +37,8 @@ android {
     applicationId = "com.park.ontect"
     minSdk = 26
     targetSdk = 35
-    versionCode = 2
-    versionName = "0.2.0"
+    versionCode = 3
+    versionName = "0.3.0"
   }
 
   flavorDimensions += "edition"
@@ -26,9 +49,23 @@ android {
     }
   }
 
+  signingConfigs {
+    if (hasReleaseKeystore) {
+      create("release") {
+        storeFile = rootProject.file(requireNotNull(releaseStoreFile))
+        storePassword = requireNotNull(releaseStorePassword)
+        keyAlias = requireNotNull(releaseKeyAlias)
+        keyPassword = requireNotNull(releaseKeyPassword)
+      }
+    }
+  }
+
   buildTypes {
     release {
       isMinifyEnabled = false
+      if (hasReleaseKeystore) {
+        signingConfig = signingConfigs.getByName("release")
+      }
       proguardFiles(
         getDefaultProguardFile("proguard-android-optimize.txt"),
         "proguard-rules.pro",

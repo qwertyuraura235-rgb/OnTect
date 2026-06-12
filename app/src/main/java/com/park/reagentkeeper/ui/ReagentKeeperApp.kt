@@ -97,6 +97,15 @@ private data class RecentEventEntry(
 
 @Composable
 fun ReagentKeeperApp(viewModel: InventoryViewModel = viewModel()) {
+    if (viewModel.setupRequired) {
+        InitialSetupScreen(
+            errorMessage = viewModel.setupError,
+            onClearError = viewModel::clearSetupError,
+            onCreateAdmin = viewModel::createInitialAdmin,
+        )
+        return
+    }
+
     val currentUser = viewModel.currentUser
 
     if (currentUser == null) {
@@ -127,6 +136,7 @@ private fun AuthenticatedApp(
     var editorTarget by remember { mutableStateOf<LabItem?>(null) }
     var actionTarget by remember { mutableStateOf<LabItem?>(null) }
     var actionType by remember { mutableStateOf<InventoryEventType?>(null) }
+    var showUserCreator by remember { mutableStateOf(false) }
 
     val filter = InventoryFilter.valueOf(selectedFilter)
     val section = AppSection.valueOf(selectedSection)
@@ -210,6 +220,11 @@ private fun AuthenticatedApp(
                         AdminDashboardScreen(
                             stats = viewModel.adminStats(),
                             users = viewModel.users,
+                            userMessage = viewModel.userManagementMessage,
+                            onAddUser = {
+                                viewModel.clearUserManagementMessage()
+                                showUserCreator = true
+                            },
                         )
                     }
                 } else {
@@ -304,6 +319,186 @@ private fun AuthenticatedApp(
             actionType = null
         },
     )
+
+    CreateUserDialog(
+        visible = showUserCreator,
+        onDismiss = { showUserCreator = false },
+        onCreate = { name, email, password, role, labName ->
+            if (viewModel.addUser(name, email, password, role, labName)) {
+                null
+            } else {
+                viewModel.userManagementMessage ?: "계정을 추가하지 못했습니다."
+            }
+        },
+    )
+}
+
+@Composable
+private fun InitialSetupScreen(
+    errorMessage: String?,
+    onClearError: () -> Unit,
+    onCreateAdmin: (String, String, String, String) -> Boolean,
+) {
+    var schoolName by rememberSaveable { mutableStateOf("") }
+    var adminName by rememberSaveable { mutableStateOf("") }
+    var email by rememberSaveable { mutableStateOf("") }
+    var password by rememberSaveable { mutableStateOf("") }
+    var passwordConfirm by rememberSaveable { mutableStateOf("") }
+    var localError by rememberSaveable { mutableStateOf<String?>(null) }
+
+    Box(
+        modifier = Modifier
+            .fillMaxSize()
+            .background(
+                Brush.verticalGradient(
+                    colors = listOf(
+                        MaterialTheme.colorScheme.background,
+                        MaterialTheme.colorScheme.primary.copy(alpha = 0.10f),
+                    ),
+                ),
+            )
+            .padding(24.dp),
+    ) {
+        Column(
+            modifier = Modifier
+                .fillMaxSize()
+                .verticalScroll(rememberScrollState()),
+            horizontalAlignment = Alignment.CenterHorizontally,
+            verticalArrangement = Arrangement.Center,
+        ) {
+            Column(
+                modifier = Modifier.fillMaxWidth(),
+                verticalArrangement = Arrangement.spacedBy(16.dp),
+            ) {
+                Column(verticalArrangement = Arrangement.spacedBy(8.dp)) {
+                    Text(
+                        text = "OnTect",
+                        style = MaterialTheme.typography.displaySmall,
+                        fontWeight = FontWeight.Bold,
+                        color = MaterialTheme.colorScheme.primary,
+                    )
+                    StatusPill(
+                        text = "첫 관리자 설정",
+                        color = MaterialTheme.colorScheme.secondaryContainer,
+                        contentColor = MaterialTheme.colorScheme.onSecondaryContainer,
+                    )
+                    Text(
+                        text = "학교 과학실 재고 관리를 시작해요",
+                        style = MaterialTheme.typography.titleLarge,
+                        fontWeight = FontWeight.SemiBold,
+                    )
+                    Text(
+                        text = "공용 데모 계정 없이, 이 기기에서 사용할 관리자 계정을 직접 만듭니다. 비밀번호는 해시로 저장되고 외부 서버로 전송되지 않습니다.",
+                        style = MaterialTheme.typography.bodyLarge,
+                        color = MaterialTheme.colorScheme.onSurfaceVariant,
+                    )
+                }
+
+                ElevatedCard(
+                    shape = RoundedCornerShape(12.dp),
+                    colors = CardDefaults.elevatedCardColors(containerColor = MaterialTheme.colorScheme.surface),
+                ) {
+                    Column(
+                        modifier = Modifier.padding(18.dp),
+                        verticalArrangement = Arrangement.spacedBy(14.dp),
+                    ) {
+                        OutlinedTextField(
+                            value = schoolName,
+                            onValueChange = {
+                                schoolName = it
+                                localError = null
+                                onClearError()
+                            },
+                            modifier = Modifier.fillMaxWidth(),
+                            label = { Text("학교 또는 실험실 이름") },
+                            placeholder = { Text("예: 온택트고 과학부") },
+                            singleLine = true,
+                            shape = RoundedCornerShape(10.dp),
+                        )
+                        OutlinedTextField(
+                            value = adminName,
+                            onValueChange = {
+                                adminName = it
+                                localError = null
+                                onClearError()
+                            },
+                            modifier = Modifier.fillMaxWidth(),
+                            label = { Text("관리자 이름") },
+                            singleLine = true,
+                            shape = RoundedCornerShape(10.dp),
+                        )
+                        OutlinedTextField(
+                            value = email,
+                            onValueChange = {
+                                email = it
+                                localError = null
+                                onClearError()
+                            },
+                            modifier = Modifier.fillMaxWidth(),
+                            label = { Text("관리자 이메일") },
+                            keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Email),
+                            singleLine = true,
+                            shape = RoundedCornerShape(10.dp),
+                        )
+                        OutlinedTextField(
+                            value = password,
+                            onValueChange = {
+                                password = it
+                                localError = null
+                                onClearError()
+                            },
+                            modifier = Modifier.fillMaxWidth(),
+                            label = { Text("비밀번호") },
+                            placeholder = { Text("8자 이상") },
+                            keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Password),
+                            singleLine = true,
+                            visualTransformation = PasswordVisualTransformation(),
+                            shape = RoundedCornerShape(10.dp),
+                        )
+                        OutlinedTextField(
+                            value = passwordConfirm,
+                            onValueChange = {
+                                passwordConfirm = it
+                                localError = null
+                                onClearError()
+                            },
+                            modifier = Modifier.fillMaxWidth(),
+                            label = { Text("비밀번호 확인") },
+                            keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Password),
+                            singleLine = true,
+                            visualTransformation = PasswordVisualTransformation(),
+                            shape = RoundedCornerShape(10.dp),
+                        )
+
+                        val visibleError = localError ?: errorMessage
+                        if (visibleError != null) {
+                            Text(
+                                text = visibleError,
+                                color = MaterialTheme.colorScheme.error,
+                                style = MaterialTheme.typography.bodyMedium,
+                            )
+                        }
+
+                        Button(
+                            onClick = {
+                                when {
+                                    password != passwordConfirm -> localError = "비밀번호 확인이 일치하지 않습니다."
+                                    else -> {
+                                        localError = null
+                                        onCreateAdmin(adminName, email, password, schoolName)
+                                    }
+                                }
+                            },
+                            modifier = Modifier.fillMaxWidth(),
+                            shape = RoundedCornerShape(10.dp),
+                        ) {
+                            Text("관리자 계정 만들기")
+                        }
+                    }
+                }
+            }
+        }
+    }
 }
 
 @Composable
@@ -312,8 +507,8 @@ private fun LoginScreen(
     onClearError: () -> Unit,
     onLogin: (String, String) -> Boolean,
 ) {
-    var email by rememberSaveable { mutableStateOf("admin@ontect.school") }
-    var password by rememberSaveable { mutableStateOf("admin1234") }
+    var email by rememberSaveable { mutableStateOf("") }
+    var password by rememberSaveable { mutableStateOf("") }
 
     Box(
         modifier = Modifier
@@ -351,7 +546,7 @@ private fun LoginScreen(
                     fontWeight = FontWeight.SemiBold,
                 )
                 Text(
-                    text = "계정으로 로그인하면 담당 실험실 재고와 입출고 기록을 이어서 관리할 수 있습니다.",
+                    text = "처음 설정한 관리자 계정이나 관리자가 추가한 계정으로 로그인하세요.",
                     style = MaterialTheme.typography.bodyLarge,
                     color = MaterialTheme.colorScheme.onSurfaceVariant,
                 )
@@ -373,6 +568,7 @@ private fun LoginScreen(
                         },
                         modifier = Modifier.fillMaxWidth(),
                         label = { Text("이메일") },
+                        keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Email),
                         singleLine = true,
                         shape = RoundedCornerShape(10.dp),
                     )
@@ -384,6 +580,7 @@ private fun LoginScreen(
                         },
                         modifier = Modifier.fillMaxWidth(),
                         label = { Text("비밀번호") },
+                        keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Password),
                         singleLine = true,
                         visualTransformation = PasswordVisualTransformation(),
                         shape = RoundedCornerShape(10.dp),
@@ -408,47 +605,14 @@ private fun LoginScreen(
                     HorizontalDivider()
 
                     Text(
-                        text = "빠른 체험 계정",
-                        style = MaterialTheme.typography.labelLarge,
+                        text = "무료 로컬 모드에서는 계정과 재고 데이터가 이 기기에만 저장됩니다. 여러 기기 동기화가 필요하면 학교 서버 또는 클라우드 연동 버전을 별도로 준비해야 합니다.",
+                        style = MaterialTheme.typography.bodyMedium,
                         color = MaterialTheme.colorScheme.onSurfaceVariant,
                     )
-                    Row(
-                        modifier = Modifier.horizontalScroll(rememberScrollState()),
-                        horizontalArrangement = Arrangement.spacedBy(8.dp),
-                    ) {
-                        DemoAccountChip("관리자", "admin@ontect.school", "admin1234", onPick = { pickedEmail, pickedPassword ->
-                            email = pickedEmail
-                            password = pickedPassword
-                            onClearError()
-                        })
-                        DemoAccountChip("화학실", "chem@ontect.school", "chem1234", onPick = { pickedEmail, pickedPassword ->
-                            email = pickedEmail
-                            password = pickedPassword
-                            onClearError()
-                        })
-                        DemoAccountChip("생명실", "bio@ontect.school", "bio1234", onPick = { pickedEmail, pickedPassword ->
-                            email = pickedEmail
-                            password = pickedPassword
-                            onClearError()
-                        })
-                    }
                 }
             }
         }
     }
-}
-
-@Composable
-private fun DemoAccountChip(
-    label: String,
-    email: String,
-    password: String,
-    onPick: (String, String) -> Unit,
-) {
-    AssistChip(
-        onClick = { onPick(email, password) },
-        label = { Text(label) },
-    )
 }
 
 @Composable
@@ -875,13 +1039,44 @@ private fun RecentActivitySection(entries: List<RecentEventEntry>) {
 }
 
 @Composable
-private fun AdminDashboardScreen(stats: AdminStats, users: List<AppUser>) {
+private fun AdminDashboardScreen(
+    stats: AdminStats,
+    users: List<AppUser>,
+    userMessage: String?,
+    onAddUser: () -> Unit,
+) {
     Column(verticalArrangement = Arrangement.spacedBy(14.dp)) {
-        Text(
-            text = "관리자 대시보드",
-            style = MaterialTheme.typography.headlineSmall,
-            fontWeight = FontWeight.Bold,
-        )
+        Row(
+            modifier = Modifier.fillMaxWidth(),
+            horizontalArrangement = Arrangement.spacedBy(12.dp),
+            verticalAlignment = Alignment.CenterVertically,
+        ) {
+            Column(modifier = Modifier.weight(1f), verticalArrangement = Arrangement.spacedBy(4.dp)) {
+                Text(
+                    text = "관리자 대시보드",
+                    style = MaterialTheme.typography.headlineSmall,
+                    fontWeight = FontWeight.Bold,
+                )
+                Text(
+                    text = "사용자와 실험실 현황을 한 곳에서 확인합니다.",
+                    style = MaterialTheme.typography.bodyMedium,
+                    color = MaterialTheme.colorScheme.onSurfaceVariant,
+                )
+            }
+            Button(onClick = onAddUser, shape = RoundedCornerShape(10.dp)) {
+                Text("사용자 추가")
+            }
+        }
+        if (userMessage != null) {
+            Card(shape = RoundedCornerShape(12.dp)) {
+                Text(
+                    text = userMessage,
+                    modifier = Modifier.padding(16.dp),
+                    style = MaterialTheme.typography.bodyMedium,
+                    color = MaterialTheme.colorScheme.onSurfaceVariant,
+                )
+            }
+        }
         AdminMetricStrip(stats)
         UserStatsSection(stats)
         LabSummarySection(stats.labSummaries)
@@ -1001,6 +1196,123 @@ private fun UserRosterSection(users: List<AppUser>) {
                         color = if (user.role == UserRole.ADMIN) MaterialTheme.colorScheme.primaryContainer else MaterialTheme.colorScheme.surfaceVariant,
                         contentColor = if (user.role == UserRole.ADMIN) MaterialTheme.colorScheme.onPrimaryContainer else MaterialTheme.colorScheme.onSurfaceVariant,
                     )
+                }
+            }
+        }
+    }
+}
+
+@Composable
+private fun CreateUserDialog(
+    visible: Boolean,
+    onDismiss: () -> Unit,
+    onCreate: (String, String, String, UserRole, String) -> String?,
+) {
+    if (!visible) return
+
+    var name by rememberSaveable { mutableStateOf("") }
+    var email by rememberSaveable { mutableStateOf("") }
+    var password by rememberSaveable { mutableStateOf("") }
+    var passwordConfirm by rememberSaveable { mutableStateOf("") }
+    var labName by rememberSaveable { mutableStateOf("") }
+    var selectedRole by rememberSaveable { mutableStateOf(UserRole.TEACHER.name) }
+    var errorMessage by rememberSaveable { mutableStateOf<String?>(null) }
+    val role = UserRole.valueOf(selectedRole)
+
+    Dialog(onDismissRequest = onDismiss) {
+        Surface(
+            shape = RoundedCornerShape(12.dp),
+            tonalElevation = 6.dp,
+        ) {
+            Column(
+                modifier = Modifier.padding(18.dp),
+                verticalArrangement = Arrangement.spacedBy(14.dp),
+            ) {
+                Text(
+                    text = "사용자 추가",
+                    style = MaterialTheme.typography.titleLarge,
+                    fontWeight = FontWeight.Bold,
+                )
+                Text(
+                    text = "추가한 사용자는 이 기기에서 바로 로그인할 수 있습니다.",
+                    style = MaterialTheme.typography.bodyMedium,
+                    color = MaterialTheme.colorScheme.onSurfaceVariant,
+                )
+
+                Column(
+                    modifier = Modifier
+                        .height(460.dp)
+                        .verticalScroll(rememberScrollState()),
+                    verticalArrangement = Arrangement.spacedBy(12.dp),
+                ) {
+                    EditorChoiceRow(
+                        title = "권한",
+                        options = UserRole.entries.map { it.label to it },
+                        selected = role,
+                        onSelected = { selectedRole = it.name },
+                    )
+                    EditorField(value = name, onValueChange = { name = it }, label = "이름")
+                    EditorField(
+                        value = email,
+                        onValueChange = { email = it },
+                        label = "이메일",
+                        keyboardType = KeyboardType.Email,
+                    )
+                    EditorField(value = labName, onValueChange = { labName = it }, label = "담당 학교 / 실험실")
+                    OutlinedTextField(
+                        value = password,
+                        onValueChange = { password = it },
+                        modifier = Modifier.fillMaxWidth(),
+                        label = { Text("비밀번호") },
+                        placeholder = { Text("8자 이상") },
+                        keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Password),
+                        singleLine = true,
+                        visualTransformation = PasswordVisualTransformation(),
+                        shape = RoundedCornerShape(10.dp),
+                    )
+                    OutlinedTextField(
+                        value = passwordConfirm,
+                        onValueChange = { passwordConfirm = it },
+                        modifier = Modifier.fillMaxWidth(),
+                        label = { Text("비밀번호 확인") },
+                        keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Password),
+                        singleLine = true,
+                        visualTransformation = PasswordVisualTransformation(),
+                        shape = RoundedCornerShape(10.dp),
+                    )
+                }
+
+                if (errorMessage != null) {
+                    Text(
+                        text = errorMessage.orEmpty(),
+                        color = MaterialTheme.colorScheme.error,
+                        style = MaterialTheme.typography.bodyMedium,
+                    )
+                }
+
+                Row(horizontalArrangement = Arrangement.spacedBy(8.dp), modifier = Modifier.fillMaxWidth()) {
+                    OutlinedButton(onClick = onDismiss, modifier = Modifier.weight(1f), shape = RoundedCornerShape(10.dp)) {
+                        Text("취소")
+                    }
+                    Button(
+                        onClick = {
+                            when {
+                                password != passwordConfirm -> errorMessage = "비밀번호 확인이 일치하지 않습니다."
+                                else -> {
+                                    val createError = onCreate(name, email, password, role, labName)
+                                    if (createError == null) {
+                                        onDismiss()
+                                    } else {
+                                        errorMessage = createError
+                                    }
+                                }
+                            }
+                        },
+                        modifier = Modifier.weight(1f),
+                        shape = RoundedCornerShape(10.dp),
+                    ) {
+                        Text("추가")
+                    }
                 }
             }
         }

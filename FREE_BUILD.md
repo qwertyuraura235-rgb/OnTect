@@ -4,7 +4,9 @@ This repository is configured around a free Android build of OnTect.
 
 ## Included
 
-- Local demo login for admin, teacher, and lab assistant roles
+- First-run local admin setup
+- Local login for admin, teacher, and lab assistant roles
+- Admin-created local user accounts
 - Device-local reagent and lab inventory storage
 - Device-local admin dashboard statistics
 - Stock-in, stock-out, and audit history
@@ -30,6 +32,15 @@ APK output:
 ```text
 app/build/outputs/apk/free/debug/app-free-debug.apk
 ```
+
+## Release Bundle Command
+
+```bash
+./gradlew bundleFreeRelease
+```
+
+A signed release bundle requires local `keystore.properties`.
+The real keystore and passwords are intentionally excluded from Git.
 
 ## Release Notes
 

@@ -3,6 +3,8 @@
 build/
 app/build/
 local.properties
+keystore.properties
+keystores/
 *.iml
 .idea/
 captures/

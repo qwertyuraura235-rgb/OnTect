@@ -14,25 +14,29 @@ It is built to replace spreadsheet-only workflows with a faster field-friendly f
 ## Current MVP
 
 - free local-only Android build flavor
-- login with role-based sessions
+- first-run admin account setup
+- local login with role-based sessions
+- admin user creation for teacher, assistant, and additional admin roles
 - admin dashboard for user and inventory statistics
 - dashboard with alert summary
 - searchable inventory list
 - add and edit item flow
 - quick stock-in and stock-out actions
 - recent activity timeline
-- spreadsheet migration mapping guide
+- Play Store release checklist and Korean listing draft
 
-## Demo Accounts
+## First-Run Setup
 
-The current free build uses local demo authentication so the app can be tested without a backend.
+The free build no longer ships with shared demo accounts.
+On first launch, the app asks the school to create a local administrator account.
+After that, administrators can add teacher, lab assistant, or additional admin accounts from the admin dashboard.
 
-| Role | Email | Password |
-| --- | --- | --- |
-| Admin | `admin@ontect.school` | `admin1234` |
-| Chemistry teacher | `chem@ontect.school` | `chem1234` |
-| Biology teacher | `bio@ontect.school` | `bio1234` |
-| Lab assistant | `assistant@ontect.school` | `lab1234` |
+Authentication remains device-local in the free build:
+
+- account records are stored in Android local preferences
+- passwords are stored as PBKDF2 hashes with random salts
+- no authentication data is sent to an external server
+- clearing app storage removes local accounts and inventory data
 
 Admin users can open the `관리자` tab after login to inspect:
 
@@ -44,6 +48,8 @@ Admin users can open the `관리자` tab after login to inspect:
 
 ## Build
 
+Use JDK 21 or JDK 17 for local Android builds. JDK 25 is currently too new for this Kotlin Gradle setup.
+
 ```bash
 ./gradlew assembleFreeDebug
 ```
@@ -52,11 +58,28 @@ The generated APK is written to:
 
 `app/build/outputs/apk/free/debug/app-free-debug.apk`
 
+## Release Bundle
+
+Google Play requires Android App Bundles for new apps. Create a signed free release bundle with:
+
+```bash
+./gradlew bundleFreeRelease
+```
+
+The generated AAB is written to:
+
+```text
+app/build/outputs/bundle/freeRelease/app-free-release.aab
+```
+
+Release signing is configured through an untracked `keystore.properties` file.
+Use `keystore.properties.example` as the template and keep the real upload key and passwords private.
+
 ## Free Build Scope
 
 The default `free` flavor is designed to stay usable without paid infrastructure.
 
-- Authentication is local demo authentication.
+- Authentication is local account authentication.
 - Inventory data is stored on the device with Android local preferences.
 - Admin statistics are calculated on device.
 - No analytics SDK, ad SDK, paid API, server, Firebase project, or Supabase project is required.
@@ -77,8 +100,9 @@ OnTect keeps the familiar structure of category, item name, model or volume, and
 
 ## Next Release Steps
 
-1. Replace the placeholder icon and finalize the visual brand.
-2. Add local CSV import/export for existing inventory sheets.
-3. Prepare Play Store listing assets for a free app.
-4. Create a signed Android App Bundle (`.aab`) for release.
-5. Consider optional school-hosted sync later, only if a school wants shared devices.
+1. Upload the signed `.aab` to Play Console internal testing.
+2. Host `PRIVACY.md` as a public privacy policy URL.
+3. Prepare phone screenshots and a 1024 x 500 feature graphic.
+4. Complete Play Console Data safety with the local-only data handling described in `PRIVACY.md`.
+5. Add local CSV import/export for existing inventory sheets.
+6. Consider optional school-hosted sync later, only if a school wants shared devices.

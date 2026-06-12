@@ -35,14 +35,38 @@ class InventoryViewModel(application: Application) : AndroidViewModel(applicatio
     var currentUser by mutableStateOf<AppUser?>(authStore.currentUser())
         private set
 
+    var setupRequired by mutableStateOf(authStore.isSetupRequired())
+        private set
+
+    var setupError by mutableStateOf<String?>(null)
+        private set
+
     var loginError by mutableStateOf<String?>(null)
         private set
+
+    var userManagementMessage by mutableStateOf<String?>(null)
+        private set
+
+    fun createInitialAdmin(name: String, email: String, password: String, labName: String): Boolean {
+        val result = authStore.createInitialAdmin(
+            name = name,
+            email = email,
+            password = password,
+            labName = labName,
+        )
+        setupError = result.errorMessage
+        currentUser = result.user
+        users = authStore.loadUsers()
+        setupRequired = authStore.isSetupRequired()
+        return result.user != null
+    }
 
     fun login(email: String, password: String): Boolean {
         val result = authStore.login(email, password)
         loginError = result.errorMessage
         currentUser = result.user
         users = authStore.loadUsers()
+        setupRequired = authStore.isSetupRequired()
         return result.user != null
     }
 
@@ -54,6 +78,32 @@ class InventoryViewModel(application: Application) : AndroidViewModel(applicatio
 
     fun clearLoginError() {
         loginError = null
+    }
+
+    fun clearSetupError() {
+        setupError = null
+    }
+
+    fun clearUserManagementMessage() {
+        userManagementMessage = null
+    }
+
+    fun addUser(name: String, email: String, password: String, role: UserRole, labName: String): Boolean {
+        if (currentUser?.role != UserRole.ADMIN) {
+            userManagementMessage = "관리자만 사용자를 추가할 수 있습니다."
+            return false
+        }
+
+        val result = authStore.createUser(
+            name = name,
+            email = email,
+            password = password,
+            role = role,
+            labName = labName,
+        )
+        users = authStore.loadUsers()
+        userManagementMessage = result.errorMessage ?: "${result.user?.name.orEmpty()} 계정을 추가했습니다."
+        return result.user != null
     }
 
     fun adminStats(): AdminStats {

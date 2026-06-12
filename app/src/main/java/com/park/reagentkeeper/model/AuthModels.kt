@@ -21,6 +21,11 @@ data class LoginResult(
     val errorMessage: String?,
 )
 
+data class RegistrationResult(
+    val user: AppUser?,
+    val errorMessage: String?,
+)
+
 data class UserStats(
     val totalUsers: Int,
     val activeUsers: Int,
