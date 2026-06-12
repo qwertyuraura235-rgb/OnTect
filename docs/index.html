@@ -1,0 +1,127 @@
+<!doctype html>
+<html lang="ko">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>OnTect</title>
+  <style>
+    :root {
+      color-scheme: light;
+      --ink: #17201f;
+      --muted: #53615f;
+      --paper: #fffaf0;
+      --wash: #f1f8f6;
+      --brand: #0f5c63;
+      --accent: #855a00;
+      --line: #d7e4e1;
+    }
+    * { box-sizing: border-box; }
+    body {
+      margin: 0;
+      font-family: ui-sans-serif, system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif;
+      color: var(--ink);
+      background:
+        radial-gradient(circle at top left, rgba(174, 239, 242, 0.85), transparent 32rem),
+        linear-gradient(135deg, var(--paper), var(--wash));
+      line-height: 1.65;
+    }
+    main {
+      width: min(880px, calc(100% - 32px));
+      margin: 0 auto;
+      padding: 72px 0;
+    }
+    .hero {
+      padding: 36px;
+      border: 1px solid var(--line);
+      border-radius: 28px;
+      background: rgba(255, 255, 255, 0.72);
+      box-shadow: 0 24px 70px rgba(15, 92, 99, 0.12);
+    }
+    h1 {
+      margin: 0 0 10px;
+      color: var(--brand);
+      font-size: clamp(2.3rem, 8vw, 4.8rem);
+      letter-spacing: -0.08em;
+      line-height: 0.95;
+    }
+    h2 {
+      margin: 34px 0 10px;
+      font-size: 1.35rem;
+    }
+    p { margin: 0 0 16px; }
+    a {
+      color: var(--brand);
+      font-weight: 700;
+      text-decoration-thickness: 0.1em;
+      text-underline-offset: 0.18em;
+    }
+    .tag {
+      display: inline-flex;
+      margin-bottom: 18px;
+      padding: 7px 12px;
+      border-radius: 999px;
+      color: #2a1800;
+      background: #ffdea6;
+      font-weight: 700;
+      font-size: 0.9rem;
+    }
+    .grid {
+      display: grid;
+      grid-template-columns: repeat(auto-fit, minmax(220px, 1fr));
+      gap: 14px;
+      margin-top: 22px;
+    }
+    .card {
+      padding: 18px;
+      border: 1px solid var(--line);
+      border-radius: 20px;
+      background: rgba(255, 255, 255, 0.76);
+    }
+    .card strong {
+      display: block;
+      margin-bottom: 6px;
+      color: var(--brand);
+    }
+    footer {
+      margin-top: 28px;
+      color: var(--muted);
+      font-size: 0.95rem;
+    }
+  </style>
+</head>
+<body>
+  <main>
+    <section class="hero">
+      <span class="tag">무료 로컬 빌드</span>
+      <h1>OnTect</h1>
+      <p>
+        OnTect는 학교 과학실의 시약품, 소모품, 기자재를 기기 안에서 관리하는
+        Android 재고 관리 앱입니다. 현재 무료 빌드는 서버, 광고, 분석 SDK 없이
+        로컬 저장 방식으로 동작합니다.
+      </p>
+      <p>
+        Google Play 제출용 개인정보처리방침은
+        <a href="./privacy.html">Privacy Policy</a>에서 확인할 수 있습니다.
+      </p>
+      <div class="grid">
+        <div class="card">
+          <strong>로컬 계정</strong>
+          첫 실행 때 관리자 계정을 만들고, 관리자가 교사/실험 보조 계정을 추가합니다.
+        </div>
+        <div class="card">
+          <strong>재고 관리</strong>
+          시약명, 위치, 담당자, 위험도, 유통기한, 입출고 기록을 저장합니다.
+        </div>
+        <div class="card">
+          <strong>관리자 통계</strong>
+          전체 사용자, 실험실별 현황, 부족 재고, 만료 임박 항목을 확인합니다.
+        </div>
+      </div>
+    </section>
+    <footer>
+      Repository:
+      <a href="https://github.com/qwertyuraura235-rgb/OnTect">github.com/qwertyuraura235-rgb/OnTect</a>
+    </footer>
+  </main>
+</body>
+</html>

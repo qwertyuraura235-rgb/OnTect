@@ -86,6 +86,8 @@ The default `free` flavor is designed to stay usable without paid infrastructure
 - Network permissions are not required by the current free build.
 
 See [FREE_BUILD.md](FREE_BUILD.md) and [PRIVACY.md](PRIVACY.md) for the release assumptions.
+The public privacy policy page for Play Console is prepared at:
+`https://qwertyuraura235-rgb.github.io/OnTect/privacy.html`
 
 ## Vision
 

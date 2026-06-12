@@ -29,9 +29,10 @@ This checklist is for publishing the free local Android build of OnTect.
 
 1. Upload the signed AAB to Play Console internal testing first.
 2. Host `PRIVACY.md` on a public URL and add that URL in Play Console.
+   Suggested URL: `https://qwertyuraura235-rgb.github.io/OnTect/privacy.html`
 3. Complete Play Console Data safety using the local-only data handling described in `PRIVACY.md`.
 4. Prepare at least 2 phone screenshots that show setup, inventory, and admin dashboard flows.
-5. Prepare a 1024 x 500 feature graphic.
+5. Upload the prepared 1024 x 500 feature graphic from `store-assets/feature-graphic.png`.
 6. Test on at least one real Android phone before sending production review.
 7. If the Play developer account is a new personal account, complete the required closed testing period before requesting production access.
 
