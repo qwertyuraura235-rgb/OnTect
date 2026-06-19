@@ -13,13 +13,11 @@ import androidx.compose.foundation.layout.ExperimentalLayoutApi
 import androidx.compose.foundation.layout.FlowRow
 import androidx.compose.foundation.layout.PaddingValues
 import androidx.compose.foundation.layout.Row
-import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.fillMaxHeight
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.navigationBarsPadding
-import androidx.compose.foundation.layout.offset
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.layout.widthIn
@@ -37,7 +35,6 @@ import androidx.compose.material3.AssistChip
 import androidx.compose.material3.Button
 import androidx.compose.material3.Card
 import androidx.compose.material3.CardDefaults
-import androidx.compose.material3.ElevatedCard
 import androidx.compose.material3.ExtendedFloatingActionButton
 import androidx.compose.material3.FilterChip
 import androidx.compose.material3.HorizontalDivider
@@ -57,7 +54,6 @@ import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
-import androidx.compose.ui.graphics.Brush
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.input.KeyboardType
@@ -104,9 +100,9 @@ private data class RecentEventEntry(
     val event: InventoryEvent,
 )
 
-private val ScreenShape = RoundedCornerShape(30.dp)
-private val CardShape = RoundedCornerShape(24.dp)
-private val TightShape = RoundedCornerShape(16.dp)
+private val ScreenShape = RoundedCornerShape(22.dp)
+private val CardShape = RoundedCornerShape(16.dp)
+private val TightShape = RoundedCornerShape(12.dp)
 
 @Composable
 private fun BrandBackdrop(
@@ -117,40 +113,9 @@ private fun BrandBackdrop(
     Box(
         modifier = modifier
             .fillMaxSize()
-            .background(
-                Brush.linearGradient(
-                    colors = listOf(
-                        MaterialTheme.colorScheme.background,
-                        MaterialTheme.colorScheme.primaryContainer.copy(alpha = 0.48f),
-                        MaterialTheme.colorScheme.secondaryContainer.copy(alpha = 0.35f),
-                    ),
-                ),
-            ),
+            .background(MaterialTheme.colorScheme.background),
         contentAlignment = contentAlignment,
     ) {
-        Box(
-            modifier = Modifier
-                .size(280.dp)
-                .offset(x = 210.dp, y = (-118).dp)
-                .clip(CircleShape)
-                .background(MaterialTheme.colorScheme.primary.copy(alpha = 0.11f)),
-        )
-        Box(
-            modifier = Modifier
-                .size(210.dp)
-                .align(Alignment.BottomStart)
-                .offset(x = (-88).dp, y = 72.dp)
-                .clip(CircleShape)
-                .background(MaterialTheme.colorScheme.secondary.copy(alpha = 0.10f)),
-        )
-        Box(
-            modifier = Modifier
-                .size(140.dp)
-                .align(Alignment.CenterEnd)
-                .offset(x = 74.dp, y = 30.dp)
-                .clip(CircleShape)
-                .background(MaterialTheme.colorScheme.tertiary.copy(alpha = 0.08f)),
-        )
         content()
     }
 }
@@ -165,10 +130,10 @@ private fun PremiumPanel(
         modifier = modifier,
         shape = shape,
         colors = CardDefaults.cardColors(
-            containerColor = MaterialTheme.colorScheme.surface.copy(alpha = 0.94f),
+            containerColor = MaterialTheme.colorScheme.surface,
         ),
-        border = BorderStroke(1.dp, MaterialTheme.colorScheme.outline.copy(alpha = 0.14f)),
-        elevation = CardDefaults.cardElevation(defaultElevation = 4.dp),
+        border = BorderStroke(1.dp, MaterialTheme.colorScheme.outline.copy(alpha = 0.58f)),
+        elevation = CardDefaults.cardElevation(defaultElevation = 0.dp),
     ) {
         Column(
             modifier = Modifier.padding(20.dp),
@@ -216,10 +181,10 @@ private fun BrandLockup(
 private fun BrandGlyph(modifier: Modifier = Modifier) {
     Surface(
         modifier = modifier.size(58.dp),
-        shape = RoundedCornerShape(18.dp),
+        shape = RoundedCornerShape(14.dp),
         color = MaterialTheme.colorScheme.primary,
         contentColor = MaterialTheme.colorScheme.onPrimary,
-        shadowElevation = 10.dp,
+        shadowElevation = 0.dp,
     ) {
         Box(contentAlignment = Alignment.Center) {
             Text(
@@ -852,62 +817,27 @@ private fun TodayPanel(
     lowStockCount: Int,
     expiringCount: Int,
 ) {
-    Surface(
-        shape = ScreenShape,
-        tonalElevation = 8.dp,
-        shadowElevation = 12.dp,
-    ) {
-        Box(
-            modifier = Modifier
-                .fillMaxWidth()
-                .background(
-                    Brush.linearGradient(
-                        colors = listOf(
-                            MaterialTheme.colorScheme.primary,
-                            MaterialTheme.colorScheme.tertiary,
-                            MaterialTheme.colorScheme.secondary,
-                        ),
-                    ),
-                )
-                .padding(24.dp),
+    PremiumPanel(shape = ScreenShape) {
+        Row(
+            modifier = Modifier.fillMaxWidth(),
+            horizontalArrangement = Arrangement.spacedBy(12.dp),
+            verticalAlignment = Alignment.Top,
         ) {
-            Box(
-                modifier = Modifier
-                    .size(150.dp)
-                    .align(Alignment.TopEnd)
-                    .offset(x = 52.dp, y = (-70).dp)
-                    .clip(CircleShape)
-                    .background(Color.White.copy(alpha = 0.10f)),
+            SectionHeading(
+                title = "${user.labName} 점검",
+                caption = "부족 재고와 만료 임박 항목을 먼저 확인하고, 수업 사용량은 바로 기록하세요.",
+                modifier = Modifier.weight(1f),
             )
-            Column(verticalArrangement = Arrangement.spacedBy(14.dp)) {
-                Surface(
-                    shape = CircleShape,
-                    color = Color.White.copy(alpha = 0.16f),
-                    contentColor = MaterialTheme.colorScheme.onPrimary,
-                ) {
-                    Text(
-                        text = "오늘의 운영 콘솔",
-                        modifier = Modifier.padding(horizontal = 12.dp, vertical = 7.dp),
-                        style = MaterialTheme.typography.labelLarge,
-                    )
-                }
-                Text(
-                    text = "${user.labName} 오늘의 점검",
-                    style = MaterialTheme.typography.headlineSmall,
-                    fontWeight = FontWeight.ExtraBold,
-                    color = MaterialTheme.colorScheme.onPrimary,
-                )
-                Text(
-                    text = "부족 재고와 만료 임박 항목을 먼저 확인하고, 수업 사용량은 바로 기록하세요.",
-                    style = MaterialTheme.typography.bodyLarge,
-                    color = MaterialTheme.colorScheme.onPrimary.copy(alpha = 0.92f),
-                )
-                FlowRow(horizontalArrangement = Arrangement.spacedBy(10.dp), verticalArrangement = Arrangement.spacedBy(10.dp)) {
-                    HeroPill("${totalCount}개 항목")
-                    HeroPill("부족 ${lowStockCount}개")
-                    HeroPill("만료주의 ${expiringCount}개")
-                }
-            }
+            StatusPill(
+                text = "오늘",
+                color = MaterialTheme.colorScheme.primaryContainer,
+                contentColor = MaterialTheme.colorScheme.onPrimaryContainer,
+            )
+        }
+        FlowRow(horizontalArrangement = Arrangement.spacedBy(10.dp), verticalArrangement = Arrangement.spacedBy(10.dp)) {
+            HeroPill("${totalCount}개 항목")
+            HeroPill("부족 ${lowStockCount}개")
+            HeroPill("만료주의 ${expiringCount}개")
         }
     }
 }
@@ -916,13 +846,13 @@ private fun TodayPanel(
 private fun HeroPill(text: String) {
     Surface(
         shape = CircleShape,
-        color = MaterialTheme.colorScheme.onPrimary.copy(alpha = 0.16f),
-        border = BorderStroke(1.dp, MaterialTheme.colorScheme.onPrimary.copy(alpha = 0.18f)),
+        color = MaterialTheme.colorScheme.surfaceVariant,
+        border = BorderStroke(1.dp, MaterialTheme.colorScheme.outline.copy(alpha = 0.54f)),
     ) {
         Text(
             text = text,
             modifier = Modifier.padding(horizontal = 12.dp, vertical = 8.dp),
-            color = MaterialTheme.colorScheme.onPrimary,
+            color = MaterialTheme.colorScheme.onSurface,
             style = MaterialTheme.typography.labelLarge,
         )
     }
@@ -951,21 +881,14 @@ private fun SummaryCard(title: String, value: String, caption: String) {
     Card(
         modifier = Modifier.width(168.dp),
         shape = CardShape,
-        colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surface.copy(alpha = 0.94f)),
-        border = BorderStroke(1.dp, MaterialTheme.colorScheme.outline.copy(alpha = 0.12f)),
-        elevation = CardDefaults.cardElevation(defaultElevation = 3.dp),
+        colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surface),
+        border = BorderStroke(1.dp, MaterialTheme.colorScheme.outline.copy(alpha = 0.58f)),
+        elevation = CardDefaults.cardElevation(defaultElevation = 0.dp),
     ) {
         Column(
             modifier = Modifier.padding(16.dp),
-            verticalArrangement = Arrangement.spacedBy(8.dp),
+            verticalArrangement = Arrangement.spacedBy(6.dp),
         ) {
-            Box(
-                modifier = Modifier
-                    .width(34.dp)
-                    .height(4.dp)
-                    .clip(CircleShape)
-                    .background(MaterialTheme.colorScheme.primary),
-            )
             Text(text = title, style = MaterialTheme.typography.labelLarge, color = MaterialTheme.colorScheme.onSurfaceVariant)
             Text(text = value, style = MaterialTheme.typography.headlineMedium, fontWeight = FontWeight.ExtraBold)
             Text(text = caption, style = MaterialTheme.typography.bodySmall, color = MaterialTheme.colorScheme.onSurfaceVariant)
