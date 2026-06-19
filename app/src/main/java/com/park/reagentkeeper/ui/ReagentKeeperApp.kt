@@ -1,20 +1,28 @@
 package com.park.reagentkeeper.ui
 
 import androidx.compose.foundation.background
+import androidx.compose.foundation.border
 import androidx.compose.foundation.horizontalScroll
+import androidx.compose.foundation.BorderStroke
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
+import androidx.compose.foundation.layout.BoxScope
 import androidx.compose.foundation.layout.Column
+import androidx.compose.foundation.layout.ColumnScope
 import androidx.compose.foundation.layout.ExperimentalLayoutApi
 import androidx.compose.foundation.layout.FlowRow
 import androidx.compose.foundation.layout.PaddingValues
 import androidx.compose.foundation.layout.Row
+import androidx.compose.foundation.layout.Spacer
+import androidx.compose.foundation.layout.fillMaxHeight
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.navigationBarsPadding
+import androidx.compose.foundation.layout.offset
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
+import androidx.compose.foundation.layout.widthIn
 import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.LazyRow
@@ -54,6 +62,7 @@ import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.input.KeyboardType
 import androidx.compose.ui.text.input.PasswordVisualTransformation
+import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.window.Dialog
@@ -94,6 +103,208 @@ private data class RecentEventEntry(
     val item: LabItem,
     val event: InventoryEvent,
 )
+
+private val ScreenShape = RoundedCornerShape(30.dp)
+private val CardShape = RoundedCornerShape(24.dp)
+private val TightShape = RoundedCornerShape(16.dp)
+
+@Composable
+private fun BrandBackdrop(
+    modifier: Modifier = Modifier,
+    contentAlignment: Alignment = Alignment.TopStart,
+    content: @Composable BoxScope.() -> Unit,
+) {
+    Box(
+        modifier = modifier
+            .fillMaxSize()
+            .background(
+                Brush.linearGradient(
+                    colors = listOf(
+                        MaterialTheme.colorScheme.background,
+                        MaterialTheme.colorScheme.primaryContainer.copy(alpha = 0.48f),
+                        MaterialTheme.colorScheme.secondaryContainer.copy(alpha = 0.35f),
+                    ),
+                ),
+            ),
+        contentAlignment = contentAlignment,
+    ) {
+        Box(
+            modifier = Modifier
+                .size(280.dp)
+                .offset(x = 210.dp, y = (-118).dp)
+                .clip(CircleShape)
+                .background(MaterialTheme.colorScheme.primary.copy(alpha = 0.11f)),
+        )
+        Box(
+            modifier = Modifier
+                .size(210.dp)
+                .align(Alignment.BottomStart)
+                .offset(x = (-88).dp, y = 72.dp)
+                .clip(CircleShape)
+                .background(MaterialTheme.colorScheme.secondary.copy(alpha = 0.10f)),
+        )
+        Box(
+            modifier = Modifier
+                .size(140.dp)
+                .align(Alignment.CenterEnd)
+                .offset(x = 74.dp, y = 30.dp)
+                .clip(CircleShape)
+                .background(MaterialTheme.colorScheme.tertiary.copy(alpha = 0.08f)),
+        )
+        content()
+    }
+}
+
+@Composable
+private fun PremiumPanel(
+    modifier: Modifier = Modifier,
+    shape: RoundedCornerShape = CardShape,
+    content: @Composable ColumnScope.() -> Unit,
+) {
+    Card(
+        modifier = modifier,
+        shape = shape,
+        colors = CardDefaults.cardColors(
+            containerColor = MaterialTheme.colorScheme.surface.copy(alpha = 0.94f),
+        ),
+        border = BorderStroke(1.dp, MaterialTheme.colorScheme.outline.copy(alpha = 0.14f)),
+        elevation = CardDefaults.cardElevation(defaultElevation = 4.dp),
+    ) {
+        Column(
+            modifier = Modifier.padding(20.dp),
+            verticalArrangement = Arrangement.spacedBy(14.dp),
+            content = content,
+        )
+    }
+}
+
+@Composable
+private fun BrandLockup(
+    modifier: Modifier = Modifier,
+    subtitle: String,
+    centered: Boolean = false,
+) {
+    val alignment = if (centered) Alignment.CenterHorizontally else Alignment.Start
+    Column(
+        modifier = modifier,
+        horizontalAlignment = alignment,
+        verticalArrangement = Arrangement.spacedBy(10.dp),
+    ) {
+        Row(
+            horizontalArrangement = Arrangement.spacedBy(12.dp),
+            verticalAlignment = Alignment.CenterVertically,
+        ) {
+            BrandGlyph()
+            Column(verticalArrangement = Arrangement.spacedBy(2.dp)) {
+                Text(
+                    text = "OnTect",
+                    style = MaterialTheme.typography.displaySmall,
+                    fontWeight = FontWeight.ExtraBold,
+                    color = MaterialTheme.colorScheme.primary,
+                )
+                Text(
+                    text = subtitle,
+                    style = MaterialTheme.typography.labelLarge,
+                    color = MaterialTheme.colorScheme.onSurfaceVariant,
+                )
+            }
+        }
+    }
+}
+
+@Composable
+private fun BrandGlyph(modifier: Modifier = Modifier) {
+    Surface(
+        modifier = modifier.size(58.dp),
+        shape = RoundedCornerShape(18.dp),
+        color = MaterialTheme.colorScheme.primary,
+        contentColor = MaterialTheme.colorScheme.onPrimary,
+        shadowElevation = 10.dp,
+    ) {
+        Box(contentAlignment = Alignment.Center) {
+            Text(
+                text = "OT",
+                style = MaterialTheme.typography.titleLarge,
+                fontWeight = FontWeight.ExtraBold,
+            )
+        }
+    }
+}
+
+@Composable
+private fun SectionHeading(
+    title: String,
+    caption: String,
+    modifier: Modifier = Modifier,
+) {
+    Column(
+        modifier = modifier,
+        verticalArrangement = Arrangement.spacedBy(4.dp),
+    ) {
+        Text(
+            text = title,
+            style = MaterialTheme.typography.titleLarge,
+            fontWeight = FontWeight.ExtraBold,
+            color = MaterialTheme.colorScheme.onSurface,
+        )
+        Text(
+            text = caption,
+            style = MaterialTheme.typography.bodyMedium,
+            color = MaterialTheme.colorScheme.onSurfaceVariant,
+        )
+    }
+}
+
+@Composable
+private fun StockMeter(
+    current: Double,
+    minimum: Double,
+    warning: Boolean,
+    modifier: Modifier = Modifier,
+) {
+    val progress = when {
+        minimum <= 0.0 -> 1f
+        else -> (current / minimum).toFloat().coerceIn(0.08f, 1f)
+    }
+    val fillColor = if (warning) MaterialTheme.colorScheme.error else MaterialTheme.colorScheme.primary
+    Box(
+        modifier = modifier
+            .height(8.dp)
+            .clip(CircleShape)
+            .background(MaterialTheme.colorScheme.surfaceVariant),
+    ) {
+        Box(
+            modifier = Modifier
+                .fillMaxWidth(progress)
+                .fillMaxHeight()
+                .clip(CircleShape)
+                .background(fillColor),
+        )
+    }
+}
+
+@Composable
+private fun RatioMeter(
+    value: Int,
+    total: Int,
+    modifier: Modifier = Modifier,
+) {
+    val progress = if (total <= 0) 0f else (value.toFloat() / total.toFloat()).coerceIn(0f, 1f)
+    Box(
+        modifier = modifier
+            .height(7.dp)
+            .clip(CircleShape)
+            .background(MaterialTheme.colorScheme.surfaceVariant),
+    ) {
+        Box(
+            modifier = Modifier
+                .fillMaxWidth(progress)
+                .fillMaxHeight()
+                .clip(CircleShape)
+                .background(MaterialTheme.colorScheme.primary),
+        )
+    }
+}
 
 @Composable
 fun ReagentKeeperApp(viewModel: InventoryViewModel = viewModel()) {
@@ -165,40 +376,30 @@ private fun AuthenticatedApp(
                         showEditor = true
                     },
                     modifier = Modifier.navigationBarsPadding(),
-                    containerColor = MaterialTheme.colorScheme.primaryContainer,
-                    contentColor = MaterialTheme.colorScheme.onPrimaryContainer,
+                    shape = RoundedCornerShape(20.dp),
+                    containerColor = MaterialTheme.colorScheme.primary,
+                    contentColor = MaterialTheme.colorScheme.onPrimary,
                 ) {
-                    Text("새 항목 추가")
+                    Text("새 재고 등록")
                 }
             }
         },
     ) { innerPadding ->
-        Box(
-            modifier = Modifier
-                .fillMaxSize()
-                .background(
-                    Brush.verticalGradient(
-                        colors = listOf(
-                            MaterialTheme.colorScheme.background,
-                            MaterialTheme.colorScheme.primary.copy(alpha = 0.06f),
-                            MaterialTheme.colorScheme.secondary.copy(alpha = 0.08f),
-                        ),
-                    ),
-                ),
-        ) {
+        BrandBackdrop {
             LazyColumn(
                 modifier = Modifier.fillMaxSize(),
                 contentPadding = PaddingValues(
-                    start = 20.dp,
-                    top = innerPadding.calculateTopPadding() + 20.dp,
-                    end = 20.dp,
+                    start = 18.dp,
+                    top = innerPadding.calculateTopPadding() + 18.dp,
+                    end = 18.dp,
                     bottom = innerPadding.calculateBottomPadding() + 108.dp,
                 ),
-                verticalArrangement = Arrangement.spacedBy(14.dp),
+                verticalArrangement = Arrangement.spacedBy(16.dp),
             ) {
                 item {
                     AppHeader(
                         user = currentUser,
+                        alertCount = lowStockCount + expiringCount + highHazardCount,
                         onLogout = {
                             selectedSection = AppSection.INVENTORY.name
                             viewModel.logout()
@@ -346,62 +547,33 @@ private fun InitialSetupScreen(
     var passwordConfirm by rememberSaveable { mutableStateOf("") }
     var localError by rememberSaveable { mutableStateOf<String?>(null) }
 
-    Box(
-        modifier = Modifier
-            .fillMaxSize()
-            .background(
-                Brush.verticalGradient(
-                    colors = listOf(
-                        MaterialTheme.colorScheme.background,
-                        MaterialTheme.colorScheme.primary.copy(alpha = 0.10f),
-                    ),
-                ),
-            )
-            .padding(24.dp),
-    ) {
+    BrandBackdrop(contentAlignment = Alignment.Center) {
         Column(
             modifier = Modifier
                 .fillMaxSize()
-                .verticalScroll(rememberScrollState()),
+                .verticalScroll(rememberScrollState())
+                .padding(24.dp),
             horizontalAlignment = Alignment.CenterHorizontally,
             verticalArrangement = Arrangement.Center,
         ) {
             Column(
-                modifier = Modifier.fillMaxWidth(),
-                verticalArrangement = Arrangement.spacedBy(16.dp),
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .widthIn(max = 560.dp),
+                verticalArrangement = Arrangement.spacedBy(18.dp),
             ) {
-                Column(verticalArrangement = Arrangement.spacedBy(8.dp)) {
-                    Text(
-                        text = "OnTect",
-                        style = MaterialTheme.typography.displaySmall,
-                        fontWeight = FontWeight.Bold,
-                        color = MaterialTheme.colorScheme.primary,
-                    )
+                BrandLockup(subtitle = "학교 과학실 운영을 위한 로컬 재고 콘솔")
+
+                PremiumPanel(shape = ScreenShape) {
                     StatusPill(
                         text = "첫 관리자 설정",
                         color = MaterialTheme.colorScheme.secondaryContainer,
                         contentColor = MaterialTheme.colorScheme.onSecondaryContainer,
                     )
-                    Text(
-                        text = "학교 과학실 재고 관리를 시작해요",
-                        style = MaterialTheme.typography.titleLarge,
-                        fontWeight = FontWeight.SemiBold,
+                    SectionHeading(
+                        title = "학교 재고 관리 공간을 만듭니다",
+                        caption = "공용 데모 계정 없이 이 기기에서 사용할 관리자 계정을 직접 생성합니다. 비밀번호는 해시로 저장되고 외부 서버로 전송되지 않습니다.",
                     )
-                    Text(
-                        text = "공용 데모 계정 없이, 이 기기에서 사용할 관리자 계정을 직접 만듭니다. 비밀번호는 해시로 저장되고 외부 서버로 전송되지 않습니다.",
-                        style = MaterialTheme.typography.bodyLarge,
-                        color = MaterialTheme.colorScheme.onSurfaceVariant,
-                    )
-                }
-
-                ElevatedCard(
-                    shape = RoundedCornerShape(12.dp),
-                    colors = CardDefaults.elevatedCardColors(containerColor = MaterialTheme.colorScheme.surface),
-                ) {
-                    Column(
-                        modifier = Modifier.padding(18.dp),
-                        verticalArrangement = Arrangement.spacedBy(14.dp),
-                    ) {
                         OutlinedTextField(
                             value = schoolName,
                             onValueChange = {
@@ -494,7 +666,6 @@ private fun InitialSetupScreen(
                         ) {
                             Text("관리자 계정 만들기")
                         }
-                    }
                 }
             }
         }
@@ -510,56 +681,26 @@ private fun LoginScreen(
     var email by rememberSaveable { mutableStateOf("") }
     var password by rememberSaveable { mutableStateOf("") }
 
-    Box(
-        modifier = Modifier
-            .fillMaxSize()
-            .background(
-                Brush.verticalGradient(
-                    colors = listOf(
-                        MaterialTheme.colorScheme.background,
-                        MaterialTheme.colorScheme.primary.copy(alpha = 0.10f),
-                    ),
-                ),
-            )
-            .padding(24.dp),
-        contentAlignment = Alignment.Center,
-    ) {
+    BrandBackdrop(contentAlignment = Alignment.Center) {
         Column(
-            modifier = Modifier.fillMaxWidth(),
-            verticalArrangement = Arrangement.spacedBy(16.dp),
+            modifier = Modifier
+                .fillMaxWidth()
+                .widthIn(max = 560.dp)
+                .padding(24.dp),
+            verticalArrangement = Arrangement.spacedBy(18.dp),
         ) {
-            Column(verticalArrangement = Arrangement.spacedBy(8.dp)) {
-                Text(
-                    text = "OnTect",
-                    style = MaterialTheme.typography.displaySmall,
-                    fontWeight = FontWeight.Bold,
-                    color = MaterialTheme.colorScheme.primary,
-                )
+            BrandLockup(subtitle = "학교 과학실 시약품 관리")
+
+            PremiumPanel(shape = ScreenShape) {
                 StatusPill(
                     text = "무료 로컬 빌드",
                     color = MaterialTheme.colorScheme.secondaryContainer,
                     contentColor = MaterialTheme.colorScheme.onSecondaryContainer,
                 )
-                Text(
-                    text = "학교 과학실 재고 관리",
-                    style = MaterialTheme.typography.titleLarge,
-                    fontWeight = FontWeight.SemiBold,
+                SectionHeading(
+                    title = "관리자 또는 담당자 계정으로 로그인",
+                    caption = "처음 설정한 관리자 계정이나 관리자가 추가한 계정으로 학교 재고 현황을 이어서 관리하세요.",
                 )
-                Text(
-                    text = "처음 설정한 관리자 계정이나 관리자가 추가한 계정으로 로그인하세요.",
-                    style = MaterialTheme.typography.bodyLarge,
-                    color = MaterialTheme.colorScheme.onSurfaceVariant,
-                )
-            }
-
-            ElevatedCard(
-                shape = RoundedCornerShape(12.dp),
-                colors = CardDefaults.elevatedCardColors(containerColor = MaterialTheme.colorScheme.surface),
-            ) {
-                Column(
-                    modifier = Modifier.padding(18.dp),
-                    verticalArrangement = Arrangement.spacedBy(14.dp),
-                ) {
                     OutlinedTextField(
                         value = email,
                         onValueChange = {
@@ -609,61 +750,101 @@ private fun LoginScreen(
                         style = MaterialTheme.typography.bodyMedium,
                         color = MaterialTheme.colorScheme.onSurfaceVariant,
                     )
-                }
             }
         }
     }
 }
 
 @Composable
-private fun AppHeader(user: AppUser, onLogout: () -> Unit) {
-    Row(
-        modifier = Modifier.fillMaxWidth(),
-        horizontalArrangement = Arrangement.spacedBy(12.dp),
-        verticalAlignment = Alignment.CenterVertically,
-    ) {
-        Column(modifier = Modifier.weight(1f), verticalArrangement = Arrangement.spacedBy(4.dp)) {
-            Text(
-                text = "OnTect",
-                style = MaterialTheme.typography.headlineMedium,
-                fontWeight = FontWeight.Bold,
-                color = MaterialTheme.colorScheme.primary,
-            )
-            Text(
-                text = "${user.name} · ${user.role.label} · ${user.labName}",
-                style = MaterialTheme.typography.bodyMedium,
-                color = MaterialTheme.colorScheme.onSurfaceVariant,
-                maxLines = 1,
-                overflow = TextOverflow.Ellipsis,
-            )
-            Text(
-                text = "무료 로컬 모드",
-                style = MaterialTheme.typography.bodySmall,
-                color = MaterialTheme.colorScheme.onSurfaceVariant,
-            )
+private fun AppHeader(
+    user: AppUser,
+    alertCount: Int,
+    onLogout: () -> Unit,
+) {
+    PremiumPanel(shape = ScreenShape) {
+        Row(
+            modifier = Modifier.fillMaxWidth(),
+            horizontalArrangement = Arrangement.spacedBy(14.dp),
+            verticalAlignment = Alignment.CenterVertically,
+        ) {
+            BrandGlyph(modifier = Modifier.size(52.dp))
+            Column(modifier = Modifier.weight(1f), verticalArrangement = Arrangement.spacedBy(4.dp)) {
+                Text(
+                    text = "OnTect",
+                    style = MaterialTheme.typography.headlineMedium,
+                    fontWeight = FontWeight.ExtraBold,
+                    color = MaterialTheme.colorScheme.primary,
+                )
+                Text(
+                    text = "${user.name} · ${user.role.label}",
+                    style = MaterialTheme.typography.titleMedium,
+                    color = MaterialTheme.colorScheme.onSurface,
+                    maxLines = 1,
+                    overflow = TextOverflow.Ellipsis,
+                )
+                Text(
+                    text = "${user.labName} · 무료 로컬 모드",
+                    style = MaterialTheme.typography.bodyMedium,
+                    color = MaterialTheme.colorScheme.onSurfaceVariant,
+                    maxLines = 1,
+                    overflow = TextOverflow.Ellipsis,
+                )
+            }
+            TextButton(onClick = onLogout) {
+                Text("로그아웃")
+            }
         }
-        TextButton(onClick = onLogout) {
-            Text("로그아웃")
+        Row(
+            modifier = Modifier.fillMaxWidth(),
+            horizontalArrangement = Arrangement.spacedBy(8.dp),
+        ) {
+            StatusPill(
+                text = if (alertCount == 0) "주의 항목 없음" else "주의 항목 $alertCount",
+                color = if (alertCount == 0) MaterialTheme.colorScheme.tertiaryContainer else MaterialTheme.colorScheme.errorContainer,
+                contentColor = if (alertCount == 0) MaterialTheme.colorScheme.onTertiaryContainer else MaterialTheme.colorScheme.onErrorContainer,
+            )
+            StatusPill(
+                text = "기기 내 저장",
+                color = MaterialTheme.colorScheme.primaryContainer,
+                contentColor = MaterialTheme.colorScheme.onPrimaryContainer,
+            )
         }
     }
 }
 
 @Composable
 private fun SectionSwitch(selectedSection: AppSection, onSelected: (AppSection) -> Unit) {
-    Row(
-        modifier = Modifier.horizontalScroll(rememberScrollState()),
-        horizontalArrangement = Arrangement.spacedBy(8.dp),
+    Surface(
+        shape = CircleShape,
+        color = MaterialTheme.colorScheme.surface.copy(alpha = 0.74f),
+        border = BorderStroke(1.dp, MaterialTheme.colorScheme.outline.copy(alpha = 0.16f)),
     ) {
-        AppSection.entries.forEach { section ->
-            FilterChip(
-                selected = selectedSection == section,
-                onClick = { onSelected(section) },
-                label = { Text(section.label) },
-            )
+        Row(
+            modifier = Modifier
+                .horizontalScroll(rememberScrollState())
+                .padding(5.dp),
+            horizontalArrangement = Arrangement.spacedBy(4.dp),
+        ) {
+            AppSection.entries.forEach { section ->
+                val selected = selectedSection == section
+                Surface(
+                    onClick = { onSelected(section) },
+                    shape = CircleShape,
+                    color = if (selected) MaterialTheme.colorScheme.primary else Color.Transparent,
+                    contentColor = if (selected) MaterialTheme.colorScheme.onPrimary else MaterialTheme.colorScheme.onSurfaceVariant,
+                ) {
+                    Text(
+                        text = section.label,
+                        modifier = Modifier.padding(horizontal = 18.dp, vertical = 10.dp),
+                        style = MaterialTheme.typography.labelLarge,
+                    )
+                }
+            }
         }
     }
 }
 
+@OptIn(ExperimentalLayoutApi::class)
 @Composable
 private fun TodayPanel(
     user: AppUser,
@@ -672,9 +853,9 @@ private fun TodayPanel(
     expiringCount: Int,
 ) {
     Surface(
-        shape = RoundedCornerShape(12.dp),
-        tonalElevation = 4.dp,
-        shadowElevation = 4.dp,
+        shape = ScreenShape,
+        tonalElevation = 8.dp,
+        shadowElevation = 12.dp,
     ) {
         Box(
             modifier = Modifier
@@ -683,17 +864,37 @@ private fun TodayPanel(
                     Brush.linearGradient(
                         colors = listOf(
                             MaterialTheme.colorScheme.primary,
+                            MaterialTheme.colorScheme.tertiary,
                             MaterialTheme.colorScheme.secondary,
                         ),
                     ),
                 )
-                .padding(20.dp),
+                .padding(24.dp),
         ) {
-            Column(verticalArrangement = Arrangement.spacedBy(10.dp)) {
+            Box(
+                modifier = Modifier
+                    .size(150.dp)
+                    .align(Alignment.TopEnd)
+                    .offset(x = 52.dp, y = (-70).dp)
+                    .clip(CircleShape)
+                    .background(Color.White.copy(alpha = 0.10f)),
+            )
+            Column(verticalArrangement = Arrangement.spacedBy(14.dp)) {
+                Surface(
+                    shape = CircleShape,
+                    color = Color.White.copy(alpha = 0.16f),
+                    contentColor = MaterialTheme.colorScheme.onPrimary,
+                ) {
+                    Text(
+                        text = "오늘의 운영 콘솔",
+                        modifier = Modifier.padding(horizontal = 12.dp, vertical = 7.dp),
+                        style = MaterialTheme.typography.labelLarge,
+                    )
+                }
                 Text(
                     text = "${user.labName} 오늘의 점검",
                     style = MaterialTheme.typography.headlineSmall,
-                    fontWeight = FontWeight.Bold,
+                    fontWeight = FontWeight.ExtraBold,
                     color = MaterialTheme.colorScheme.onPrimary,
                 )
                 Text(
@@ -701,7 +902,7 @@ private fun TodayPanel(
                     style = MaterialTheme.typography.bodyLarge,
                     color = MaterialTheme.colorScheme.onPrimary.copy(alpha = 0.92f),
                 )
-                Row(horizontalArrangement = Arrangement.spacedBy(10.dp)) {
+                FlowRow(horizontalArrangement = Arrangement.spacedBy(10.dp), verticalArrangement = Arrangement.spacedBy(10.dp)) {
                     HeroPill("${totalCount}개 항목")
                     HeroPill("부족 ${lowStockCount}개")
                     HeroPill("만료주의 ${expiringCount}개")
@@ -715,7 +916,8 @@ private fun TodayPanel(
 private fun HeroPill(text: String) {
     Surface(
         shape = CircleShape,
-        color = MaterialTheme.colorScheme.onPrimary.copy(alpha = 0.14f),
+        color = MaterialTheme.colorScheme.onPrimary.copy(alpha = 0.16f),
+        border = BorderStroke(1.dp, MaterialTheme.colorScheme.onPrimary.copy(alpha = 0.18f)),
     ) {
         Text(
             text = text,
@@ -746,17 +948,26 @@ private fun SummaryStrip(totalCount: Int, lowStockCount: Int, expiringCount: Int
 
 @Composable
 private fun SummaryCard(title: String, value: String, caption: String) {
-    ElevatedCard(
-        modifier = Modifier.width(164.dp),
-        shape = RoundedCornerShape(12.dp),
-        colors = CardDefaults.elevatedCardColors(containerColor = MaterialTheme.colorScheme.surface),
+    Card(
+        modifier = Modifier.width(168.dp),
+        shape = CardShape,
+        colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surface.copy(alpha = 0.94f)),
+        border = BorderStroke(1.dp, MaterialTheme.colorScheme.outline.copy(alpha = 0.12f)),
+        elevation = CardDefaults.cardElevation(defaultElevation = 3.dp),
     ) {
         Column(
             modifier = Modifier.padding(16.dp),
-            verticalArrangement = Arrangement.spacedBy(6.dp),
+            verticalArrangement = Arrangement.spacedBy(8.dp),
         ) {
+            Box(
+                modifier = Modifier
+                    .width(34.dp)
+                    .height(4.dp)
+                    .clip(CircleShape)
+                    .background(MaterialTheme.colorScheme.primary),
+            )
             Text(text = title, style = MaterialTheme.typography.labelLarge, color = MaterialTheme.colorScheme.onSurfaceVariant)
-            Text(text = value, style = MaterialTheme.typography.headlineMedium, fontWeight = FontWeight.Bold)
+            Text(text = value, style = MaterialTheme.typography.headlineMedium, fontWeight = FontWeight.ExtraBold)
             Text(text = caption, style = MaterialTheme.typography.bodySmall, color = MaterialTheme.colorScheme.onSurfaceVariant)
         }
     }
@@ -765,18 +976,16 @@ private fun SummaryCard(title: String, value: String, caption: String) {
 @OptIn(ExperimentalLayoutApi::class)
 @Composable
 private fun QuickActionPanel(lowStockCount: Int, expiringCount: Int, highHazardCount: Int) {
-    Card(shape = RoundedCornerShape(12.dp)) {
-        Column(
-            modifier = Modifier.padding(16.dp),
-            verticalArrangement = Arrangement.spacedBy(12.dp),
-        ) {
-            Text(text = "우선 확인", style = MaterialTheme.typography.titleMedium, fontWeight = FontWeight.SemiBold)
-            FlowRow(horizontalArrangement = Arrangement.spacedBy(8.dp), verticalArrangement = Arrangement.spacedBy(8.dp)) {
-                ActionChip("재주문 $lowStockCount")
-                ActionChip("만료 임박 $expiringCount")
-                ActionChip("고위험 $highHazardCount")
-                ActionChip("수업 사용량 기록")
-            }
+    PremiumPanel {
+        SectionHeading(
+            title = "우선 처리",
+            caption = "수업 전 확인해야 할 항목을 빠르게 좁혀보세요.",
+        )
+        FlowRow(horizontalArrangement = Arrangement.spacedBy(8.dp), verticalArrangement = Arrangement.spacedBy(8.dp)) {
+            ActionChip("재주문 $lowStockCount")
+            ActionChip("만료 임박 $expiringCount")
+            ActionChip("고위험 $highHazardCount")
+            ActionChip("사용량 기록")
         }
     }
 }
@@ -803,12 +1012,16 @@ private fun SearchAndFilterSection(
     selectedFilter: InventoryFilter,
     onFilterChange: (InventoryFilter) -> Unit,
 ) {
-    Column(verticalArrangement = Arrangement.spacedBy(12.dp)) {
+    PremiumPanel {
+        SectionHeading(
+            title = "재고 찾기",
+            caption = "시약명, 위치, 담당자를 기준으로 바로 검색합니다.",
+        )
         OutlinedTextField(
             value = query,
             onValueChange = onQueryChange,
             modifier = Modifier.fillMaxWidth(),
-            shape = RoundedCornerShape(10.dp),
+            shape = TightShape,
             label = { Text("검색") },
             placeholder = { Text("시약명, 분류, 위치, 담당교사") },
             singleLine = true,
@@ -837,29 +1050,34 @@ private fun InventoryCard(
     onStockOut: () -> Unit,
 ) {
     val expiryState = item.expiryState()
-    ElevatedCard(
-        shape = RoundedCornerShape(12.dp),
-        colors = CardDefaults.elevatedCardColors(
-            containerColor = when {
-                item.isLowStock() -> MaterialTheme.colorScheme.errorContainer.copy(alpha = 0.42f)
-                expiryState == ExpiryState.EXPIRED -> MaterialTheme.colorScheme.errorContainer.copy(alpha = 0.38f)
-                else -> MaterialTheme.colorScheme.surface
-            },
+    val warning = item.isLowStock() || expiryState == ExpiryState.SOON || expiryState == ExpiryState.EXPIRED
+    Card(
+        shape = ScreenShape,
+        colors = CardDefaults.cardColors(
+            containerColor = MaterialTheme.colorScheme.surface.copy(alpha = 0.96f),
         ),
+        border = BorderStroke(
+            width = 1.dp,
+            color = if (warning) MaterialTheme.colorScheme.error.copy(alpha = 0.28f) else MaterialTheme.colorScheme.outline.copy(alpha = 0.12f),
+        ),
+        elevation = CardDefaults.cardElevation(defaultElevation = if (warning) 6.dp else 3.dp),
     ) {
         Column(
-            modifier = Modifier.padding(16.dp),
-            verticalArrangement = Arrangement.spacedBy(14.dp),
+            modifier = Modifier.padding(18.dp),
+            verticalArrangement = Arrangement.spacedBy(16.dp),
         ) {
             Row(horizontalArrangement = Arrangement.spacedBy(12.dp), verticalAlignment = Alignment.Top) {
                 Column(modifier = Modifier.weight(1f), verticalArrangement = Arrangement.spacedBy(8.dp)) {
-                    Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
+                    FlowRow(horizontalArrangement = Arrangement.spacedBy(8.dp), verticalArrangement = Arrangement.spacedBy(8.dp)) {
                         StatusPill(text = item.type.label, color = MaterialTheme.colorScheme.primaryContainer, contentColor = MaterialTheme.colorScheme.onPrimaryContainer)
                         if (item.hazardLevel == HazardLevel.HIGH) {
-                            StatusPill(text = "고위험", color = MaterialTheme.colorScheme.error, contentColor = MaterialTheme.colorScheme.onError)
+                            StatusPill(text = "고위험", color = MaterialTheme.colorScheme.errorContainer, contentColor = MaterialTheme.colorScheme.onErrorContainer)
+                        }
+                        if (item.isLowStock()) {
+                            StatusPill(text = "재주문", color = MaterialTheme.colorScheme.secondaryContainer, contentColor = MaterialTheme.colorScheme.onSecondaryContainer)
                         }
                     }
-                    Text(text = item.name, style = MaterialTheme.typography.titleLarge, fontWeight = FontWeight.Bold)
+                    Text(text = item.name, style = MaterialTheme.typography.titleLarge, fontWeight = FontWeight.ExtraBold)
                     Text(
                         text = buildString {
                             append(item.category)
@@ -871,14 +1089,14 @@ private fun InventoryCard(
                 }
 
                 Surface(
-                    shape = RoundedCornerShape(10.dp),
-                    color = MaterialTheme.colorScheme.primary.copy(alpha = 0.10f),
+                    shape = TightShape,
+                    color = if (warning) MaterialTheme.colorScheme.errorContainer.copy(alpha = 0.54f) else MaterialTheme.colorScheme.primaryContainer.copy(alpha = 0.74f),
                 ) {
                     Column(
                         modifier = Modifier.padding(horizontal = 14.dp, vertical = 10.dp),
                         horizontalAlignment = Alignment.End,
                     ) {
-                        Text(text = item.currentQuantity.displayQuantity(), style = MaterialTheme.typography.headlineSmall, fontWeight = FontWeight.Bold)
+                        Text(text = item.currentQuantity.displayQuantity(), style = MaterialTheme.typography.headlineSmall, fontWeight = FontWeight.ExtraBold)
                         Text(text = "${item.unit} 보유", style = MaterialTheme.typography.labelMedium)
                         Text(
                             text = "최소 ${item.minimumQuantity.displayQuantity()} ${item.unit}",
@@ -889,10 +1107,14 @@ private fun InventoryCard(
                 }
             }
 
+            StockMeter(
+                current = item.currentQuantity,
+                minimum = item.minimumQuantity,
+                warning = item.isLowStock(),
+                modifier = Modifier.fillMaxWidth(),
+            )
+
             FlowRow(horizontalArrangement = Arrangement.spacedBy(8.dp), verticalArrangement = Arrangement.spacedBy(8.dp)) {
-                if (item.isLowStock()) {
-                    AssistChip(onClick = {}, label = { Text("재주문 필요") })
-                }
                 when (expiryState) {
                     ExpiryState.SOON -> AssistChip(onClick = {}, label = { Text("유통기한 임박") })
                     ExpiryState.EXPIRED -> AssistChip(onClick = {}, label = { Text("유통기한 지남") })
@@ -905,21 +1127,21 @@ private fun InventoryCard(
 
             HorizontalDivider()
 
-            Column(verticalArrangement = Arrangement.spacedBy(8.dp)) {
-                DetailLine(label = "보관 위치", value = item.storageLocation)
-                DetailLine(label = "담당", value = item.manager.ifBlank { "미지정" })
-                DetailLine(label = "유통기한", value = item.expiryDate.ifBlank { "없음" })
-                DetailLine(label = "마지막 점검", value = formatTimestamp(item.lastCheckedAt))
+            FlowRow(horizontalArrangement = Arrangement.spacedBy(10.dp), verticalArrangement = Arrangement.spacedBy(10.dp)) {
+                DetailTile(label = "보관 위치", value = item.storageLocation)
+                DetailTile(label = "담당", value = item.manager.ifBlank { "미지정" })
+                DetailTile(label = "유통기한", value = item.expiryDate.ifBlank { "없음" })
+                DetailTile(label = "마지막 점검", value = formatTimestamp(item.lastCheckedAt))
                 if (item.note.isNotBlank()) {
-                    DetailLine(label = "메모", value = item.note, maxLines = 3)
+                    DetailTile(label = "메모", value = item.note, maxLines = 3, wide = true)
                 }
             }
 
             Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
-                Button(onClick = onStockIn, modifier = Modifier.weight(1f), shape = RoundedCornerShape(10.dp)) {
+                Button(onClick = onStockIn, modifier = Modifier.weight(1f), shape = TightShape) {
                     Text("입고")
                 }
-                OutlinedButton(onClick = onStockOut, modifier = Modifier.weight(1f), shape = RoundedCornerShape(10.dp)) {
+                OutlinedButton(onClick = onStockOut, modifier = Modifier.weight(1f), shape = TightShape) {
                     Text("사용")
                 }
                 TextButton(onClick = onEdit) {
@@ -946,43 +1168,60 @@ private fun StatusPill(text: String, color: Color, contentColor: Color) {
 }
 
 @Composable
-private fun DetailLine(label: String, value: String, maxLines: Int = 1) {
-    Column(verticalArrangement = Arrangement.spacedBy(2.dp)) {
-        Text(text = label, style = MaterialTheme.typography.labelMedium, color = MaterialTheme.colorScheme.onSurfaceVariant)
-        Text(
-            text = value,
-            style = MaterialTheme.typography.bodyLarge,
-            maxLines = maxLines,
-            overflow = TextOverflow.Ellipsis,
-        )
-    }
-}
-
-@Composable
-private fun EmptyInventoryState(query: String, filter: InventoryFilter) {
-    Card(shape = RoundedCornerShape(12.dp)) {
+private fun DetailTile(
+    label: String,
+    value: String,
+    maxLines: Int = 1,
+    wide: Boolean = false,
+) {
+    Surface(
+        modifier = Modifier.widthIn(min = if (wide) 260.dp else 142.dp),
+        shape = TightShape,
+        color = MaterialTheme.colorScheme.surfaceVariant.copy(alpha = 0.48f),
+    ) {
         Column(
-            modifier = Modifier.padding(18.dp),
-            verticalArrangement = Arrangement.spacedBy(8.dp),
+            modifier = Modifier.padding(horizontal = 12.dp, vertical = 10.dp),
+            verticalArrangement = Arrangement.spacedBy(3.dp),
         ) {
-            Text(text = "조건에 맞는 항목이 없습니다", style = MaterialTheme.typography.titleMedium, fontWeight = FontWeight.SemiBold)
+            Text(text = label, style = MaterialTheme.typography.labelMedium, color = MaterialTheme.colorScheme.onSurfaceVariant)
             Text(
-                text = "검색어 `${query.ifBlank { "없음" }}` 와 필터 `${filter.label}` 조합에 맞는 결과가 아직 없습니다.",
+                text = value,
                 style = MaterialTheme.typography.bodyMedium,
-                color = MaterialTheme.colorScheme.onSurfaceVariant,
+                fontWeight = FontWeight.SemiBold,
+                maxLines = maxLines,
+                overflow = TextOverflow.Ellipsis,
             )
         }
     }
 }
 
 @Composable
+private fun EmptyInventoryState(query: String, filter: InventoryFilter) {
+    PremiumPanel {
+        Text(
+            text = "조건에 맞는 항목이 없습니다",
+            modifier = Modifier.fillMaxWidth(),
+            style = MaterialTheme.typography.titleLarge,
+            fontWeight = FontWeight.ExtraBold,
+            textAlign = TextAlign.Center,
+        )
+        Text(
+            text = "검색어 `${query.ifBlank { "없음" }}` 와 필터 `${filter.label}` 조합에 맞는 결과가 아직 없습니다. 필터를 전체로 바꾸거나 새 재고를 등록해 보세요.",
+            modifier = Modifier.fillMaxWidth(),
+            style = MaterialTheme.typography.bodyMedium,
+            color = MaterialTheme.colorScheme.onSurfaceVariant,
+            textAlign = TextAlign.Center,
+        )
+    }
+}
+
+@Composable
 private fun RecentActivitySection(entries: List<RecentEventEntry>) {
-    Card(shape = RoundedCornerShape(12.dp)) {
-        Column(
-            modifier = Modifier.padding(18.dp),
-            verticalArrangement = Arrangement.spacedBy(14.dp),
-        ) {
-            Text(text = "최근 입출고 및 점검 기록", style = MaterialTheme.typography.titleMedium, fontWeight = FontWeight.SemiBold)
+    PremiumPanel {
+            SectionHeading(
+                title = "최근 활동",
+                caption = "입고, 사용, 점검 기록을 시간순으로 확인합니다.",
+            )
             if (entries.isEmpty()) {
                 Text(text = "아직 기록이 없습니다.", color = MaterialTheme.colorScheme.onSurfaceVariant)
             } else {
@@ -1034,10 +1273,10 @@ private fun RecentActivitySection(entries: List<RecentEventEntry>) {
                     }
                 }
             }
-        }
     }
 }
 
+@OptIn(ExperimentalLayoutApi::class)
 @Composable
 private fun AdminDashboardScreen(
     stats: AdminStats,
@@ -1046,29 +1285,41 @@ private fun AdminDashboardScreen(
     onAddUser: () -> Unit,
 ) {
     Column(verticalArrangement = Arrangement.spacedBy(14.dp)) {
-        Row(
-            modifier = Modifier.fillMaxWidth(),
-            horizontalArrangement = Arrangement.spacedBy(12.dp),
-            verticalAlignment = Alignment.CenterVertically,
-        ) {
-            Column(modifier = Modifier.weight(1f), verticalArrangement = Arrangement.spacedBy(4.dp)) {
-                Text(
-                    text = "관리자 대시보드",
-                    style = MaterialTheme.typography.headlineSmall,
-                    fontWeight = FontWeight.Bold,
+        PremiumPanel(shape = ScreenShape) {
+            Row(
+                modifier = Modifier.fillMaxWidth(),
+                horizontalArrangement = Arrangement.spacedBy(12.dp),
+                verticalAlignment = Alignment.CenterVertically,
+            ) {
+                SectionHeading(
+                    title = "관리자 대시보드",
+                    caption = "사용자와 실험실 현황을 한 곳에서 관리합니다.",
+                    modifier = Modifier.weight(1f),
                 )
-                Text(
-                    text = "사용자와 실험실 현황을 한 곳에서 확인합니다.",
-                    style = MaterialTheme.typography.bodyMedium,
-                    color = MaterialTheme.colorScheme.onSurfaceVariant,
-                )
+                Button(onClick = onAddUser, shape = TightShape) {
+                    Text("사용자 추가")
+                }
             }
-            Button(onClick = onAddUser, shape = RoundedCornerShape(10.dp)) {
-                Text("사용자 추가")
+            FlowRow(horizontalArrangement = Arrangement.spacedBy(8.dp), verticalArrangement = Arrangement.spacedBy(8.dp)) {
+                StatusPill(
+                    text = "활성 ${stats.userStats.activeUsers}명",
+                    color = MaterialTheme.colorScheme.primaryContainer,
+                    contentColor = MaterialTheme.colorScheme.onPrimaryContainer,
+                )
+                StatusPill(
+                    text = "재고 ${stats.totalItems}개",
+                    color = MaterialTheme.colorScheme.tertiaryContainer,
+                    contentColor = MaterialTheme.colorScheme.onTertiaryContainer,
+                )
+                StatusPill(
+                    text = "주의 ${stats.lowStockItems + stats.expiringItems}개",
+                    color = MaterialTheme.colorScheme.errorContainer,
+                    contentColor = MaterialTheme.colorScheme.onErrorContainer,
+                )
             }
         }
         if (userMessage != null) {
-            Card(shape = RoundedCornerShape(12.dp)) {
+            Card(shape = CardShape) {
                 Text(
                     text = userMessage,
                     modifier = Modifier.padding(16.dp),
@@ -1096,45 +1347,45 @@ private fun AdminMetricStrip(stats: AdminStats) {
 
 @Composable
 private fun UserStatsSection(stats: AdminStats) {
-    Card(shape = RoundedCornerShape(12.dp)) {
-        Column(
-            modifier = Modifier.padding(18.dp),
-            verticalArrangement = Arrangement.spacedBy(12.dp),
-        ) {
-            Text(text = "사용자 통계", style = MaterialTheme.typography.titleMedium, fontWeight = FontWeight.SemiBold)
-            AdminStatLine("관리자", stats.userStats.adminUsers, stats.userStats.totalUsers)
-            AdminStatLine("교사", stats.userStats.teacherUsers, stats.userStats.totalUsers)
-            AdminStatLine("실험 보조", stats.userStats.assistantUsers, stats.userStats.totalUsers)
-            HorizontalDivider()
-            AdminStatLine("입고 기록", stats.stockInEvents, stats.totalEvents)
-            AdminStatLine("사용 기록", stats.stockOutEvents, stats.totalEvents)
-            AdminStatLine("점검 기록", stats.auditEvents, stats.totalEvents)
-        }
+    PremiumPanel {
+        SectionHeading(
+            title = "사용자 통계",
+            caption = "권한별 사용자와 기록 유형을 비율로 확인합니다.",
+        )
+        AdminStatLine("관리자", stats.userStats.adminUsers, stats.userStats.totalUsers)
+        AdminStatLine("교사", stats.userStats.teacherUsers, stats.userStats.totalUsers)
+        AdminStatLine("실험 보조", stats.userStats.assistantUsers, stats.userStats.totalUsers)
+        HorizontalDivider()
+        AdminStatLine("입고 기록", stats.stockInEvents, stats.totalEvents)
+        AdminStatLine("사용 기록", stats.stockOutEvents, stats.totalEvents)
+        AdminStatLine("점검 기록", stats.auditEvents, stats.totalEvents)
     }
 }
 
 @Composable
 private fun AdminStatLine(label: String, value: Int, total: Int) {
     val percent = if (total == 0) 0 else ((value.toFloat() / total.toFloat()) * 100).toInt()
-    Row(
-        modifier = Modifier.fillMaxWidth(),
-        horizontalArrangement = Arrangement.spacedBy(12.dp),
-        verticalAlignment = Alignment.CenterVertically,
-    ) {
-        Text(text = label, modifier = Modifier.weight(1f), style = MaterialTheme.typography.bodyLarge)
-        Text(text = "$value", style = MaterialTheme.typography.bodyLarge, fontWeight = FontWeight.SemiBold)
-        Text(text = "$percent%", style = MaterialTheme.typography.bodyMedium, color = MaterialTheme.colorScheme.onSurfaceVariant)
+    Column(verticalArrangement = Arrangement.spacedBy(6.dp)) {
+        Row(
+            modifier = Modifier.fillMaxWidth(),
+            horizontalArrangement = Arrangement.spacedBy(12.dp),
+            verticalAlignment = Alignment.CenterVertically,
+        ) {
+            Text(text = label, modifier = Modifier.weight(1f), style = MaterialTheme.typography.bodyLarge)
+            Text(text = "$value", style = MaterialTheme.typography.bodyLarge, fontWeight = FontWeight.ExtraBold)
+            Text(text = "$percent%", style = MaterialTheme.typography.bodyMedium, color = MaterialTheme.colorScheme.onSurfaceVariant)
+        }
+        RatioMeter(value = value, total = total)
     }
 }
 
 @Composable
 private fun LabSummarySection(summaries: List<LabSummary>) {
-    Card(shape = RoundedCornerShape(12.dp)) {
-        Column(
-            modifier = Modifier.padding(18.dp),
-            verticalArrangement = Arrangement.spacedBy(12.dp),
-        ) {
-            Text(text = "실험실별 현황", style = MaterialTheme.typography.titleMedium, fontWeight = FontWeight.SemiBold)
+    PremiumPanel {
+            SectionHeading(
+                title = "실험실별 현황",
+                caption = "담당자, 항목 수, 주의 항목을 실험실 단위로 봅니다.",
+            )
             summaries.forEachIndexed { index, summary ->
                 if (index > 0) HorizontalDivider()
                 Row(
@@ -1157,18 +1408,16 @@ private fun LabSummarySection(summaries: List<LabSummary>) {
                     )
                 }
             }
-        }
     }
 }
 
 @Composable
 private fun UserRosterSection(users: List<AppUser>) {
-    Card(shape = RoundedCornerShape(12.dp)) {
-        Column(
-            modifier = Modifier.padding(18.dp),
-            verticalArrangement = Arrangement.spacedBy(12.dp),
-        ) {
-            Text(text = "전체 유저", style = MaterialTheme.typography.titleMedium, fontWeight = FontWeight.SemiBold)
+    PremiumPanel {
+            SectionHeading(
+                title = "전체 사용자",
+                caption = "이 기기에 등록된 로컬 계정 목록입니다.",
+            )
             users.forEachIndexed { index, user ->
                 if (index > 0) HorizontalDivider()
                 Row(
@@ -1198,7 +1447,6 @@ private fun UserRosterSection(users: List<AppUser>) {
                     )
                 }
             }
-        }
     }
 }
 
